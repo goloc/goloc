@@ -2,6 +2,7 @@ package goloc
 
 import (
 	"bytes"
+	"math"
 	"regexp"
 	"strings"
 )
@@ -113,21 +114,12 @@ func stripAccents(s string) string {
 	return b.String()
 }
 
-func min(a int, b int) (res int) {
-	if a < b {
-		res = a
-	} else {
-		res = b
-	}
-	return
-}
-
-func levenshteinDistance(source string, target string) int {
-	if source == target {
+func levenshteinDistance(search string, reference string) int {
+	if search == reference {
 		return 0
 	}
-	r1 := []rune(source)
-	r2 := []rune(target)
+	r1 := []rune(search)
+	r2 := []rune(reference)
 	if len(r1) == 0 {
 		return len(r2)
 	}
@@ -161,6 +153,49 @@ func levenshteinDistance(source string, target string) int {
 		}
 	}
 	return dist[(cols*rows)-1]
+}
+
+func score(search string, reference string) int {
+	maxScore := 1000
+	if search == "" || reference == "" {
+		return 0
+	}
+	if search == reference {
+		return maxScore
+	}
+	searchWords := splitSpacePunct(strings.ToUpper(stripAccents(search)))
+	referenceWords := splitSpacePunct(strings.ToUpper(stripAccents(reference)))
+	var score float64
+	var s float64
+	searchLen := len(search)
+	referenceLen := len(reference)
+	lastj := -1
+	for _, currentSearchWord := range searchWords {
+		minDist := math.MaxInt32
+		dist := 0
+		currentj := 0
+		for j, currentRefenceWord := range referenceWords {
+			dist = levenshteinDistance(currentSearchWord, currentRefenceWord)
+			if dist < minDist {
+				minDist = dist
+				currentj = j
+			}
+		}
+		if lastj == -1 {
+			lastj = currentj
+		}
+		s = float64(len(currentSearchWord)-minDist) / float64(searchLen)
+		if s > 0 {
+			if currentj < lastj {
+				s *= math.Pow(0.9, float64(lastj-currentj))
+			} else if currentj > lastj+1 {
+				s *= math.Pow(0.9, float64(currentj-lastj+1))
+			}
+			score += s
+			lastj = currentj
+		}
+	}
+	return int(float64(maxScore-20)*score + float64(20*min(searchLen, referenceLen))/float64(10*max(searchLen, referenceLen)))
 }
 
 func partialphone(source string) string {
@@ -221,6 +256,8 @@ func partialphone(source string) string {
 		case 'H':
 			if lastRune == 'P' {
 				lastRune = 'F'
+			} else {
+				// Silent
 			}
 
 		case 'J':
@@ -254,10 +291,10 @@ func partialphone(source string) string {
 			lastRune = 'S'
 
 		case 'V':
-			lastRune = 'F'
+			lastRune = 'V'
 
 		case 'W':
-			lastRune = 'A'
+			lastRune = 'V'
 
 		case 'X':
 			lastRune = 'S'

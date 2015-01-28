@@ -26,7 +26,7 @@ func TestSplitSpacePunct(t *testing.T) {
 
 func TestStripAccents(t *testing.T) {
 	source := "zùeèàüî~Ýa erÆ a"
-	res := stripAccents("zùeèàüî~Ýa erÆ a")
+	res := stripAccents(source)
 	fmt.Printf("%t -> %t\n", source, res)
 	if res != "zueeaui~Ya erAE a" {
 		t.Fail()
@@ -42,33 +42,15 @@ var levTests = []struct {
 	target   string
 	distance int
 }{
-	// two empty
 	{"", "", 0},
-	// deletion
-	{"library", "librar", 1},
-	// one empty, left
-	{"", "library", 7},
-	// one empty, right
-	{"library", "", 7},
-	{"car", "cars", 1},
-	{"", "a", 1},
-	{"a", "aa", 1},
-	{"a", "aaa", 2},
-	{"", "", 0},
-	{"a", "b", 1},
-	{"aaa", "aba", 1},
-	{"aaa", "ab", 2},
-	{"a", "a", 0},
-	{"ab", "ab", 0},
-	{"a", "", 1},
-	{"aa", "a", 1},
-	{"aaa", "a", 2},
-	// unicode
-	{"Schüßler", "Schübler", 1},
-	{"Schüßler", "Schußler", 1},
-	{"Schüßler", "Schüßler", 0},
-	{"Schüßler", "Schüler", 1},
-	{"Schüßler", "Schüßlers", 1},
+	{"PARIS", "", 5},
+	{"", "PARIS", 5},
+	{"PARIS", "PARIS", 0},
+	{"PARIS", "PARI", 1},
+	{"PARS", "PARIS", 1},
+	{"PAR", "PARIS", 2},
+	{"PR", "PARIS", 3},
+	{"PARIS", "FRANCE", 5},
 }
 
 func TestLevenshteinDistance(t *testing.T) {
@@ -81,14 +63,31 @@ func TestLevenshteinDistance(t *testing.T) {
 	}
 }
 
+var scoreTests = []struct {
+	source   string
+	target   string
+	distance int
+}{
+	{"PARIS", "Avenue des Champs-Élysées 75008 Paris France", 5},
+	{"PARIS", "Rue du Square Carpeaux 75018 Paris France", 5},
+	{"CARPEAUX PARIS", "Rue du Square Carpeaux 75018 Paris France", 5},
+	{"PARIS CARPEAUX", "Rue du Square Carpeaux 75018 Paris France", 5},
+}
+
+func TestScore(t *testing.T) {
+	for _, tt := range scoreTests {
+		d := score(tt.source, tt.target)
+		fmt.Printf("%t - %t -> %d\n", tt.source, tt.target, d)
+	}
+}
+
 var partialphoneTests = []struct {
 	source string
 	target string
 }{
 	{"", ""},
-	{"Avenue des Champs-Élysées 75008 Paris France", "AFN D S ALS 7 PR RS"},
+	{"Avenue des Champs-Élysées 75008 Paris France", "AVN D S ALS 7 PR RS"},
 	{"Rue du Square Carpeaux 75018 Paris France", "R D KR SP 7 PR RS"},
-	{"i ii az tt rre ke_me-pe", "A A A  R K M P"},
 	{"a23 34u 78004R 345TE", "A2 3A 7 3S"},
 }
 
