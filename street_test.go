@@ -1,7 +1,6 @@
 package goloc
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -17,7 +16,6 @@ func TestStreet(t *testing.T) {
 	street.Zone = paris8
 	name := street.GetName()
 	target := "Avenue des Champs-Élysées 75008 Paris France"
-	fmt.Printf("%t -> %t\n", name, target)
 	if target != name {
 		t.Fail()
 	}

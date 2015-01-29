@@ -3,7 +3,6 @@ package goloc
 import ()
 
 type Result struct {
-	id    string
-	score int
-	loc   Localisation
+	Score        int
+	Localisation Localisation
 }

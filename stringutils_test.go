@@ -1,18 +1,13 @@
 package goloc
 
 import (
-	"fmt"
 	"testing"
 )
 
 func TestSplitSpacePunct(t *testing.T) {
 	res := splitSpacePunct("start er  ee r '-('([[-||]]) zée-ee -_ end")
-	fmt.Printf("nb = %d\n", len(res))
 	if len(res) != 7 {
 		t.Fail()
-	}
-	for i, e := range res {
-		fmt.Printf("%d %t\n", i, e)
 	}
 	res = splitSpacePunct(" ")
 	if len(res) != 0 {
@@ -27,7 +22,6 @@ func TestSplitSpacePunct(t *testing.T) {
 func TestStripAccents(t *testing.T) {
 	source := "zùeèàüî~Ýa erÆ a"
 	res := stripAccents(source)
-	fmt.Printf("%t -> %t\n", source, res)
 	if res != "zueeaui~Ya erAE a" {
 		t.Fail()
 	}
@@ -55,33 +49,15 @@ var levTests = []struct {
 	{"PR", "PARIS", false, 3},
 	{"PARIS", "FRANCE", false, 5},
 	{"PĂRIS", "PARIŞ", false, 2},
+	{"CAR", "Carpeaux", true, 5},
 }
 
 func TestLevenshteinDistance(t *testing.T) {
 	for _, tt := range levTests {
 		d := levenshteinDistance(tt.source, tt.target, tt.ignoreCase)
-		fmt.Printf("%t - %t -> %d\n", tt.source, tt.target, d)
 		if d != tt.distance {
 			t.Fail()
 		}
-	}
-}
-
-var scoreTests = []struct {
-	source   string
-	target   string
-	distance int
-}{
-	{"PARIS", "Avenue des Champs-Élysées 75008 Paris France", 5},
-	{"PARIS", "Rue du Square Carpeaux 75018 Paris France", 5},
-	{"CARPEAUX PARIS", "Rue du Square Carpeaux 75018 Paris France", 5},
-	{"PARIS CARPEAUX", "Rue du Square Carpeaux 75018 Paris France", 5},
-}
-
-func TestScore(t *testing.T) {
-	for _, tt := range scoreTests {
-		d := score(tt.source, tt.target)
-		fmt.Printf("%t - %t -> %d\n", tt.source, tt.target, d)
 	}
 }
 
@@ -98,7 +74,6 @@ var partialphoneTests = []struct {
 func TestPartialphone(t *testing.T) {
 	for _, tt := range partialphoneTests {
 		target := partialphone(tt.source)
-		fmt.Printf("%t -> %t\n", tt.source, target)
 		if target != tt.target {
 			t.Fail()
 		}

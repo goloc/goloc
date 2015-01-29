@@ -158,46 +158,50 @@ func levenshteinDistance(search string, reference string, ignoreCase bool) int {
 }
 
 func score(search string, reference string) int {
-	maxScore := 1000
+	defaultMaxScore := 1000.0
 	if search == "" || reference == "" {
 		return 0
 	}
 	if search == reference {
-		return maxScore
+		return int(defaultMaxScore)
 	}
 	searchWords := splitSpacePunct(stripAccents(search))
 	referenceWords := splitSpacePunct(stripAccents(reference))
-	var score float64
-	var s float64
+	var score, s float64
+	var maxMatch, nbMatch, nbRefMatch, bestIndex, nbRef int
 	searchLen := len(search)
 	referenceLen := len(reference)
-	lastj := -1
+	lastIndex := -1
 	for _, currentSearchWord := range searchWords {
-		minDist := math.MaxInt32
-		dist := 0
-		currentj := 0
-		for j, currentRefenceWord := range referenceWords {
-			dist = levenshteinDistance(currentSearchWord, currentRefenceWord, true)
-			if dist < minDist {
-				minDist = dist
-				currentj = j
+		maxMatch = 0
+		nbMatch = 0
+		nbRefMatch = 1
+		bestIndex = 0
+		for i, currentRefenceWord := range referenceWords {
+			nbRef = len(currentRefenceWord)
+			nbMatch = nbRef - levenshteinDistance(currentSearchWord, currentRefenceWord, true)
+			if nbMatch > maxMatch {
+				maxMatch = nbMatch
+				nbRefMatch = nbRef
+				bestIndex = i
 			}
 		}
-		if lastj == -1 {
-			lastj = currentj
+		if lastIndex == -1 {
+			lastIndex = bestIndex
 		}
-		s = float64(len(currentSearchWord)-minDist) / float64(searchLen)
+		s = float64(len(currentSearchWord)*maxMatch) / float64(searchLen*nbRefMatch)
 		if s > 0 {
-			if currentj < lastj {
-				s *= math.Pow(0.9, float64(lastj-currentj))
-			} else if currentj > lastj+1 {
-				s *= math.Pow(0.9, float64(currentj-lastj+1))
+			if bestIndex < lastIndex {
+				s *= math.Pow(0.9, float64(lastIndex-bestIndex))
+			} else if bestIndex > lastIndex+1 {
+				s *= math.Pow(0.9, float64(bestIndex-lastIndex+1))
 			}
 			score += s
-			lastj = currentj
+			lastIndex = bestIndex
 		}
 	}
-	return int(float64(maxScore-20)*score + float64(20*min(searchLen, referenceLen))/float64(10*max(searchLen, referenceLen)))
+	score = score * defaultMaxScore * (0.9 + 0.1*float64(min(searchLen, referenceLen))/float64(max(searchLen, referenceLen)))
+	return int(score)
 }
 
 func partialphone(source string) string {

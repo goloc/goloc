@@ -1,7 +1,6 @@
 package goloc
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -31,59 +30,43 @@ func TestMemindex(t *testing.T) {
 	memindex.Add(street2)
 
 	sizeLoc := memindex.SizeLocalisation()
-	fmt.Printf("size localisation %d\n", sizeLoc)
 	if sizeLoc != 2 {
 		t.Fail()
 	}
 
 	sizeIndex := memindex.SizeIndex()
-	fmt.Printf("size index %d\n", sizeIndex)
 	if sizeIndex != 15 {
 		t.Fail()
-	}
-
-	mapResult := memindex.Search("paris")
-	if len(*mapResult) != 2 {
-		t.Fail()
-	}
-	for _, result := range *mapResult {
-		name := result.loc.GetName()
-		fmt.Printf("%t %d\n", name, result.score)
-	}
-
-	mapResult = memindex.Search("avenue")
-	if len(*mapResult) != 1 {
-		t.Fail()
-	}
-	for _, result := range *mapResult {
-		name := result.loc.GetName()
-		fmt.Printf("%t %d\n", name, result.score)
-	}
-
-	mapResult = memindex.Search("carpo")
-	if len(*mapResult) != 1 {
-		t.Fail()
-	}
-	for _, result := range *mapResult {
-		name := result.loc.GetName()
-		fmt.Printf("%t %d\n", name, result.score)
 	}
 
 	memindex.SaveInFile("golocTest.gob")
 }
 
-func TestReload(t *testing.T) {
+func TestReloadAndSearch(t *testing.T) {
 	memindex := NewMemindexFromFile("golocTest.gob")
 
 	sizeLoc := memindex.SizeLocalisation()
-	fmt.Printf("size localisation %d\n", sizeLoc)
 	if sizeLoc != 2 {
 		t.Fail()
 	}
 
 	sizeIndex := memindex.SizeIndex()
-	fmt.Printf("size index %d\n", sizeIndex)
 	if sizeIndex != 15 {
+		t.Fail()
+	}
+
+	results := memindex.Search("paris", 10, 500, 300)
+	if len(results) != 2 {
+		t.Fail()
+	}
+
+	results = memindex.Search("avenue", 10, 500, 300)
+	if len(results) != 1 {
+		t.Fail()
+	}
+
+	results = memindex.Search("carpe", 10, 500, 300)
+	if len(results) != 1 {
 		t.Fail()
 	}
 }

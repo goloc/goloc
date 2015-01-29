@@ -9,5 +9,5 @@ type Index interface {
 	SizeIndex() int
 	Get(id string) Localisation
 	Remove(id string)
-	Search(str string) *map[string]*Result
+	Search(str string, max int, minScore int, maxDeviation int) []*Result
 }

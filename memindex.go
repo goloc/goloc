@@ -3,6 +3,7 @@ package goloc
 import (
 	"encoding/gob"
 	"os"
+	"sort"
 )
 
 type LinkedId struct {
@@ -14,6 +15,12 @@ type Memindex struct {
 	Localisations map[string]Localisation
 	Phoneindex    map[string]*LinkedId
 }
+
+type ByScore []*Result
+
+func (a ByScore) Len() int           { return len(a) }
+func (a ByScore) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByScore) Less(i, j int) bool { return a[i].Score > a[j].Score }
 
 func (mi *Memindex) Add(loc Localisation) {
 	id := loc.GetId()
@@ -55,7 +62,7 @@ func (mi *Memindex) Get(id string) Localisation {
 func (mi *Memindex) Remove(id string) {
 	delete(mi.Localisations, id)
 }
-func (mi *Memindex) Search(search string) *map[string]*Result {
+func (mi *Memindex) Search(search string, max int, minScore int, maxDeviation int) []*Result {
 	keys := splitSpacePunct(partialphone(search))
 	mapResult := make(map[string]*Result)
 	maxScore := 0
@@ -68,35 +75,64 @@ func (mi *Memindex) Search(search string) *map[string]*Result {
 			id := linkedId.Id
 			result, ok := mapResult[id]
 			if ok {
-				result.score += len(id)
+				result.Score += len(id)
 			} else {
 				result = new(Result)
-				result.id = id
-				result.score = len(id)
-				result.loc = mi.Localisations[id]
-				mapResult[id] = result
+				result.Score = len(id)
+				result.Localisation = mi.Localisations[id]
+				if result.Localisation != nil {
+					mapResult[id] = result
+				}
 			}
-			if result.score > maxScore {
-				maxScore = result.score
+			if result.Score > maxScore {
+				maxScore = result.Score
 			}
 		}
 	}
 	targetScore := min(maxScore, keysScore)
 	numResult := 0
 	for id, result := range mapResult {
-		if result.score >= targetScore {
+		if result.Score >= targetScore {
 			numResult++
 			mapResult[id] = result
 		} else {
 			delete(mapResult, id)
 		}
 	}
+
+	maxScore = 0
 	for _, result := range mapResult {
-		loc := result.loc
-		name := loc.GetName()
-		result.score = score(search, name)
+		name := result.Localisation.GetName()
+		result.Score = score(search, name)
+		if result.Score > maxScore {
+			maxScore = result.Score
+		}
 	}
-	return &mapResult
+
+	nb := 0
+	for id, result := range mapResult {
+		if result.Score < minScore || result.Score < maxScore-maxDeviation {
+			delete(mapResult, id)
+		} else {
+			nb++
+		}
+	}
+
+	nbRes := min(nb, max)
+	results := make([]*Result, nbRes)
+
+	i := 0
+	for _, result := range mapResult {
+		results[i] = result
+		i++
+		if i >= nbRes {
+			break
+		}
+	}
+
+	sort.Sort(ByScore(results))
+
+	return results
 }
 func (mi *Memindex) SaveInFile(filename string) {
 	file, err := os.Create(filename)
