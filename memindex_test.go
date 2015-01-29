@@ -69,19 +69,21 @@ func TestMemindex(t *testing.T) {
 		fmt.Printf("%t %d\n", name, result.score)
 	}
 
-	memindex.SaveInFile("testSaveMemindex.gob")
+	memindex.SaveInFile("golocTest.gob")
+}
 
-	memindex2 := NewMemindexFromFile("testSaveMemindex.gob")
+func TestReload(t *testing.T) {
+	memindex := NewMemindexFromFile("golocTest.gob")
 
-	sizeLoc2 := memindex2.SizeLocalisation()
-	fmt.Printf("size localisation %d\n", sizeLoc2)
-	if sizeLoc2 != 2 {
+	sizeLoc := memindex.SizeLocalisation()
+	fmt.Printf("size localisation %d\n", sizeLoc)
+	if sizeLoc != 2 {
 		t.Fail()
 	}
 
-	sizeIndex2 := memindex2.SizeIndex()
-	fmt.Printf("size index %d\n", sizeIndex2)
-	if sizeIndex2 != 15 {
+	sizeIndex := memindex.SizeIndex()
+	fmt.Printf("size index %d\n", sizeIndex)
+	if sizeIndex != 15 {
 		t.Fail()
 	}
 }

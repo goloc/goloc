@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"math"
 	"regexp"
-	"strings"
+	"unicode"
 )
 
 var splitSpacePunctRegex = regexp.MustCompile("[[:space:][:punct:]]")
@@ -114,7 +114,7 @@ func stripAccents(s string) string {
 	return b.String()
 }
 
-func levenshteinDistance(search string, reference string) int {
+func levenshteinDistance(search string, reference string, ignoreCase bool) int {
 	if search == reference {
 		return 0
 	}
@@ -144,6 +144,8 @@ func levenshteinDistance(search string, reference string) int {
 		for i = 1; i < rows; i++ {
 			if r1[i-1] == r2[j-1] {
 				dist[(i*cols)+j] = dist[((i-1)*cols)+(j-1)]
+			} else if ignoreCase == true && unicode.ToUpper(r1[i-1]) == unicode.ToUpper(r2[j-1]) {
+				dist[(i*cols)+j] = dist[((i-1)*cols)+(j-1)]
 			} else {
 				d1 = dist[((i-1)*cols)+j] + 1
 				d2 = dist[(i*cols)+(j-1)] + 1
@@ -163,8 +165,8 @@ func score(search string, reference string) int {
 	if search == reference {
 		return maxScore
 	}
-	searchWords := splitSpacePunct(strings.ToUpper(stripAccents(search)))
-	referenceWords := splitSpacePunct(strings.ToUpper(stripAccents(reference)))
+	searchWords := splitSpacePunct(stripAccents(search))
+	referenceWords := splitSpacePunct(stripAccents(reference))
 	var score float64
 	var s float64
 	searchLen := len(search)
@@ -175,7 +177,7 @@ func score(search string, reference string) int {
 		dist := 0
 		currentj := 0
 		for j, currentRefenceWord := range referenceWords {
-			dist = levenshteinDistance(currentSearchWord, currentRefenceWord)
+			dist = levenshteinDistance(currentSearchWord, currentRefenceWord, true)
 			if dist < minDist {
 				minDist = dist
 				currentj = j
@@ -199,7 +201,7 @@ func score(search string, reference string) int {
 }
 
 func partialphone(source string) string {
-	r := []rune(strings.ToUpper(stripAccents(source)))
+	r := []rune(stripAccents(source))
 
 	if len(r) == 0 {
 		return ""
@@ -209,7 +211,7 @@ func partialphone(source string) string {
 	lastRune := ' '
 
 	for _, currentRune := range r {
-		switch currentRune {
+		switch unicode.ToUpper(currentRune) {
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			switch lastRune {
 			case ' ', 'A', 'E', 'I', 'O', 'U', 'Y':

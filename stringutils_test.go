@@ -38,24 +38,28 @@ func TestStripAccents(t *testing.T) {
 }
 
 var levTests = []struct {
-	source   string
-	target   string
-	distance int
+	source     string
+	target     string
+	ignoreCase bool
+	distance   int
 }{
-	{"", "", 0},
-	{"PARIS", "", 5},
-	{"", "PARIS", 5},
-	{"PARIS", "PARIS", 0},
-	{"PARIS", "PARI", 1},
-	{"PARS", "PARIS", 1},
-	{"PAR", "PARIS", 2},
-	{"PR", "PARIS", 3},
-	{"PARIS", "FRANCE", 5},
+	{"", "", false, 0},
+	{"PARIS", "", false, 5},
+	{"", "PARIS", false, 5},
+	{"PARIS", "PARIS", false, 0},
+	{"PaRIS", "PARiS", false, 2},
+	{"PaRIS", "PARiS", true, 0},
+	{"PARIS", "PARI", false, 1},
+	{"PARS", "PARIS", false, 1},
+	{"PAR", "PARIS", false, 2},
+	{"PR", "PARIS", false, 3},
+	{"PARIS", "FRANCE", false, 5},
+	{"PĂRIS", "PARIŞ", false, 2},
 }
 
 func TestLevenshteinDistance(t *testing.T) {
 	for _, tt := range levTests {
-		d := levenshteinDistance(tt.source, tt.target)
+		d := levenshteinDistance(tt.source, tt.target, tt.ignoreCase)
 		fmt.Printf("%t - %t -> %d\n", tt.source, tt.target, d)
 		if d != tt.distance {
 			t.Fail()
