@@ -2,320 +2,209 @@ package goloc
 
 import (
 	"bytes"
-	"math"
-	"regexp"
+	"strings"
 	"unicode"
 )
 
-var splitSpacePunctRegex = regexp.MustCompile("[[:space:][:punct:]]")
-
-var accentsMap = map[rune]string{
-	'À': "A",
-	'Á': "A",
-	'Â': "A",
-	'Ã': "A",
-	'Ä': "A",
-	'Å': "AA",
-	'Æ': "AE",
-	'Ç': "C",
-	'È': "E",
-	'É': "E",
-	'Ê': "E",
-	'Ë': "E",
-	'Ì': "I",
-	'Í': "I",
-	'Î': "I",
-	'Ï': "I",
-	'Ð': "D",
-	'Ł': "L",
-	'Ñ': "N",
-	'Ò': "O",
-	'Ó': "O",
-	'Ô': "O",
-	'Õ': "O",
-	'Ö': "O",
-	'Ø': "OE",
-	'Ù': "U",
-	'Ú': "U",
-	'Ü': "U",
-	'Û': "U",
-	'Ý': "Y",
-	'Þ': "Th",
-	'ß': "ss",
-	'à': "a",
-	'á': "a",
-	'â': "a",
-	'ã': "a",
-	'ä': "a",
-	'å': "aa",
-	'æ': "ae",
-	'ç': "c",
-	'è': "e",
-	'é': "e",
-	'ê': "e",
-	'ë': "e",
-	'ì': "i",
-	'í': "i",
-	'î': "i",
-	'ï': "i",
-	'ð': "d",
-	'ł': "l",
-	'ñ': "n",
-	'ń': "n",
-	'ò': "o",
-	'ó': "o",
-	'ô': "o",
-	'õ': "o",
-	'ō': "o",
-	'ö': "o",
-	'ø': "oe",
-	'ś': "s",
-	'ù': "u",
-	'ú': "u",
-	'û': "u",
-	'ū': "u",
-	'ü': "u",
-	'ý': "y",
-	'þ': "th",
-	'ÿ': "y",
-	'ż': "z",
-	'Œ': "OE",
-	'œ': "oe",
+func Split(source string) []string {
+	return strings.FieldsFunc(source, func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsNumber(r)
+	})
 }
 
-func splitSpacePunct(s string) []string {
-	n := 0
-	splited := splitSpacePunctRegex.Split(s, -1)
-	for _, s := range splited {
-		if len(s) > 0 {
-			n++
-		}
+func LevenshteinDistance(search string, reference string, ignoreCase bool) int {
+	var cost, lastdiag, olddiag int
+	lenSearch := 0
+	for range search {
+		lenSearch++
 	}
-	r := make([]string, n)
-	i := 0
-	for _, s := range splited {
-		if len(s) > 0 {
-			r[i] = s
-			i++
-		}
+	column := make([]int, lenSearch+1)
+	for y := 0; y <= lenSearch; y++ {
+		column[y] = y
 	}
-	return r
-}
-
-func stripAccents(s string) string {
-	b := bytes.NewBufferString("")
-	for _, c := range s {
-		if val, ok := accentsMap[c]; ok {
-			b.WriteString(val)
-		} else {
-			b.WriteRune(c)
-		}
-	}
-	return b.String()
-}
-
-func levenshteinDistance(search string, reference string, ignoreCase bool) int {
-	if search == reference {
-		return 0
-	}
-	r1 := []rune(search)
-	r2 := []rune(reference)
-	if len(r1) == 0 {
-		return len(r2)
-	}
-	if len(r2) == 0 {
-		return len(r1)
-	}
-	rows := len(r1) + 1
-	cols := len(r2) + 1
-	var d1 int
-	var d2 int
-	var d3 int
-	var i int
-	var j int
-	dist := make([]int, rows*cols)
-	for i = 0; i < rows; i++ {
-		dist[i*cols] = i
-	}
-	for j = 0; j < cols; j++ {
-		dist[j] = j
-	}
-	for j = 1; j < cols; j++ {
-		for i = 1; i < rows; i++ {
-			if r1[i-1] == r2[j-1] {
-				dist[(i*cols)+j] = dist[((i-1)*cols)+(j-1)]
-			} else if ignoreCase == true && unicode.ToUpper(r1[i-1]) == unicode.ToUpper(r2[j-1]) {
-				dist[(i*cols)+j] = dist[((i-1)*cols)+(j-1)]
-			} else {
-				d1 = dist[((i-1)*cols)+j] + 1
-				d2 = dist[(i*cols)+(j-1)] + 1
-				d3 = dist[((i-1)*cols)+(j-1)] + 1
-				dist[(i*cols)+j] = min(d1, min(d2, d3))
+	x := 1
+	for _, runeRef := range reference {
+		column[0] = x
+		lastdiag = x - 1
+		y := 1
+		for _, runeSearch := range search {
+			olddiag = column[y]
+			cost = 0
+			if runeSearch != runeRef {
+				if ignoreCase == true {
+					if unicode.ToUpper(runeSearch) != unicode.ToUpper(runeRef) {
+						cost = 1
+					}
+				} else {
+					cost = 1
+				}
 			}
+			column[y] = Min(Min(
+				column[y]+1,
+				column[y-1]+1),
+				lastdiag+cost)
+			lastdiag = olddiag
+			y++
 		}
+		x++
 	}
-	return dist[(cols*rows)-1]
+	return column[lenSearch]
 }
 
-func score(search string, reference string) int {
-	defaultMaxScore := 1000.0
+func Score(search string, reference string) int {
+	defaultMaxScore := 1000
 	if search == "" || reference == "" {
 		return 0
 	}
-	if search == reference {
-		return int(defaultMaxScore)
-	}
-	searchWords := splitSpacePunct(stripAccents(search))
-	referenceWords := splitSpacePunct(stripAccents(reference))
-	var score, s float64
-	var maxMatch, nbMatch, nbRefMatch, bestIndex, nbRef int
-	searchLen := len(search)
-	referenceLen := len(reference)
+	searchWords := Split(search)
+	referenceWords := Split(reference)
+	var match, topMatch, m, bestIndex int
 	lastIndex := -1
 	for _, currentSearchWord := range searchWords {
-		maxMatch = 0
-		nbMatch = 0
-		nbRefMatch = 1
+		topMatch = 0
 		bestIndex = 0
 		for i, currentRefenceWord := range referenceWords {
-			nbRef = len(currentRefenceWord)
-			nbMatch = nbRef - levenshteinDistance(currentSearchWord, currentRefenceWord, true)
-			if nbMatch > maxMatch {
-				maxMatch = nbMatch
-				nbRefMatch = nbRef
+			m = len(currentRefenceWord) - LevenshteinDistance(currentSearchWord, currentRefenceWord, true)
+			if m > topMatch {
+				topMatch = m
 				bestIndex = i
 			}
 		}
 		if lastIndex == -1 {
 			lastIndex = bestIndex
 		}
-		s = float64(len(currentSearchWord)*maxMatch) / float64(searchLen*nbRefMatch)
-		if s > 0 {
-			if bestIndex < lastIndex {
-				s *= math.Pow(0.9, float64(lastIndex-bestIndex))
-			} else if bestIndex > lastIndex+1 {
-				s *= math.Pow(0.9, float64(bestIndex-lastIndex+1))
-			}
-			score += s
-			lastIndex = bestIndex
+		match += topMatch
+		if bestIndex < lastIndex {
+			match--
 		}
+		lastIndex = bestIndex
 	}
-	score = score * defaultMaxScore * (0.9 + 0.1*float64(min(searchLen, referenceLen))/float64(max(searchLen, referenceLen)))
-	return int(score)
+	if match < 0 {
+		return 0
+	} else {
+		return (defaultMaxScore * match) / len(search)
+	}
 }
 
-func partialphone(source string) string {
-	r := []rune(stripAccents(source))
-
-	if len(r) == 0 {
-		return ""
-	}
-
+func Partialphone(source string) string {
 	b := bytes.NewBufferString("")
 	lastRune := ' '
 
-	for _, currentRune := range r {
-		switch unicode.ToUpper(currentRune) {
-		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			switch lastRune {
-			case ' ', 'A', 'E', 'I', 'O', 'U', 'Y':
-				b.WriteRune(currentRune)
-				lastRune = currentRune
-			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-				lastRune = currentRune
-			default:
-				if lastRune != 0 {
-					b.WriteRune(lastRune)
-				}
-				lastRune = 0
-			}
-
-		case 'A', 'E', 'I', 'O', 'U', 'Y':
-			switch lastRune {
-			case ' ', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-				b.WriteRune('A')
-				lastRune = 'A'
-			case 'A', 'E', 'I', 'O', 'U', 'Y':
-				lastRune = 'A'
-			default:
-				if lastRune != 0 {
-					b.WriteRune(lastRune)
-				}
-				lastRune = 0
-			}
-
-		case 'B':
+	for _, currentRune := range source {
+		switch currentRune {
+		case 'B', 'b':
 			lastRune = 'B'
 
-		case 'C':
+		case 'C', 'c':
+			lastRune = 'C'
+
+		case 'Ç', 'ç':
 			lastRune = 'S'
 
-		case 'D':
+		case 'D', 'd':
 			lastRune = 'D'
 
-		case 'F':
+		case 'F', 'f':
 			lastRune = 'F'
 
-		case 'G':
+		case 'G', 'g':
 			lastRune = 'J'
 
-		case 'H':
+		case 'H', 'h':
 			if lastRune == 'P' {
 				lastRune = 'F'
+			} else if lastRune == 'C' {
+				lastRune = 'S'
 			} else {
 				// Silent
 			}
 
-		case 'J':
+		case 'J', 'j':
 			lastRune = 'J'
 
-		case 'K':
+		case 'K', 'k':
 			lastRune = 'K'
 
-		case 'L':
+		case 'L', 'l':
 			lastRune = 'L'
 
-		case 'M':
+		case 'M', 'm':
 			lastRune = 'M'
 
-		case 'N':
+		case 'N', 'n', 'Ñ', 'ñ':
 			lastRune = 'N'
 
-		case 'P':
+		case 'P', 'p':
 			lastRune = 'P'
 
-		case 'Q':
+		case 'Q', 'q':
 			lastRune = 'K'
 
-		case 'R':
+		case 'R', 'r':
 			lastRune = 'R'
 
-		case 'S':
+		case 'S', 's', 'ẞ', 'ß':
 			lastRune = 'S'
 
-		case 'T':
+		case 'T', 't':
 			lastRune = 'S'
 
-		case 'V':
+		case 'V', 'v':
 			lastRune = 'V'
 
-		case 'W':
+		case 'W', 'w':
 			lastRune = 'V'
 
-		case 'X':
+		case 'X', 'x':
 			lastRune = 'S'
 
-		case 'Z':
+		case 'Z', 'z':
 			lastRune = 'S'
 
 		default:
-			switch lastRune {
-			case ' ':
+			if unicode.IsPunct(currentRune) || unicode.IsSpace(currentRune) || unicode.IsControl(currentRune) || unicode.IsSymbol(currentRune) || unicode.IsMark(currentRune) {
+				switch lastRune {
+				case ' ':
 
-			default:
-				b.WriteRune(' ')
-				lastRune = ' '
+				default:
+					b.WriteRune(' ')
+					lastRune = ' '
+				}
+			} else if unicode.IsNumber(currentRune) {
+				if lastRune == ' ' || lastRune == 'A' {
+					b.WriteRune(currentRune)
+					lastRune = currentRune
+				} else if unicode.IsNumber(lastRune) {
+					lastRune = currentRune
+				} else {
+					if lastRune != 0 {
+						b.WriteRune(lastRune)
+					}
+					lastRune = 0
+				}
+
+			} else {
+				if lastRune == ' ' || unicode.IsNumber(lastRune) {
+					b.WriteRune('A')
+					lastRune = 'A'
+				} else if lastRune == 'A' {
+					lastRune = currentRune
+				} else if lastRune == 'C' {
+					switch unicode.ToUpper(currentRune) {
+					case 'E', 'È', 'É', 'Ê', 'Ë', 'I', 'Ì', 'Í', 'Î', 'Ï', 'Y', 'Ŷ', 'Ÿ':
+						b.WriteRune('S')
+					default:
+						b.WriteRune('K')
+					}
+					lastRune = 0
+				} else {
+					if lastRune != 0 {
+						b.WriteRune(lastRune)
+					}
+					lastRune = 0
+				}
 			}
+
 		}
 	}
 

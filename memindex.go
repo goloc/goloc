@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"os"
 	"sort"
+	"strconv"
 )
 
 type LinkedId struct {
@@ -24,9 +25,8 @@ func (a ByScore) Less(i, j int) bool { return a[i].Score > a[j].Score }
 
 func (mi *Memindex) Add(loc Localisation) {
 	id := loc.GetId()
-	name := loc.GetName()
 	mi.Localisations[id] = loc
-	keys := splitSpacePunct(partialphone(name))
+	keys := Split(Partialphone(loc.GetName()))
 	for _, k := range keys {
 		l := len(k)
 		i := l
@@ -63,69 +63,83 @@ func (mi *Memindex) Remove(id string) {
 	delete(mi.Localisations, id)
 }
 func (mi *Memindex) Search(search string, max int, minScore int, maxDeviation int) []*Result {
-	keys := splitSpacePunct(partialphone(search))
+	keys := Split(Partialphone(search))
 	mapResult := make(map[string]*Result)
-	maxScore := 0
-	keysScore := 0
+	var maxScore, keysScore, numResult, tmpScore, i int
+	var result *Result
+	var id string
+	var ok bool
 	for _, k := range keys {
-		keysScore += len(k)
+		if _, err := strconv.Atoi(k); err != nil {
+			// is not num
+			keysScore += 2 + len(k)*len(k)
+		}
 	}
 	for _, k := range keys {
 		for linkedId := mi.Phoneindex[k]; linkedId != nil; linkedId = linkedId.Next {
-			id := linkedId.Id
-			result, ok := mapResult[id]
+			id = linkedId.Id
+			result, ok = mapResult[id]
+			if _, err := strconv.Atoi(k); err != nil {
+				// is not num
+				tmpScore = 2 + len(k)*len(k)
+			} else {
+				// is num
+				tmpScore = 1
+			}
 			if ok {
-				result.Score += len(id)
+				result.Score += tmpScore
 			} else {
 				result = new(Result)
-				result.Score = len(id)
+				result.Score = tmpScore
 				result.Localisation = mi.Localisations[id]
 				if result.Localisation != nil {
 					mapResult[id] = result
 				}
 			}
-			if result.Score > maxScore {
-				maxScore = result.Score
-			}
 		}
 	}
-	targetScore := min(maxScore, keysScore)
-	numResult := 0
-	for id, result := range mapResult {
-		if result.Score >= targetScore {
+
+	numResult = 0
+	for id, result = range mapResult {
+		if result.Score >= keysScore {
 			numResult++
-			mapResult[id] = result
 		} else {
 			delete(mapResult, id)
 		}
 	}
 
 	maxScore = 0
-	for _, result := range mapResult {
-		name := result.Localisation.GetName()
-		result.Score = score(search, name)
-		if result.Score > maxScore {
-			maxScore = result.Score
-		}
-	}
-
-	nb := 0
-	for id, result := range mapResult {
-		if result.Score < minScore || result.Score < maxScore-maxDeviation {
+	numResult = 0
+	for id, result = range mapResult {
+		tmpScore = Score(search, result.Localisation.GetName())
+		if tmpScore < minScore {
 			delete(mapResult, id)
 		} else {
-			nb++
+			result.Score = tmpScore
+			if tmpScore > maxScore {
+				maxScore = tmpScore
+			}
+			numResult++
 		}
 	}
 
-	nbRes := min(nb, max)
-	results := make([]*Result, nbRes)
+	numResult = 0
+	for id, result = range mapResult {
+		if result.Score < maxScore-maxDeviation {
+			delete(mapResult, id)
+		} else {
+			numResult++
+		}
+	}
 
-	i := 0
+	nb := Min(numResult, max)
+	results := make([]*Result, nb)
+
+	i = 0
 	for _, result := range mapResult {
 		results[i] = result
 		i++
-		if i >= nbRes {
+		if i >= nb {
 			break
 		}
 	}

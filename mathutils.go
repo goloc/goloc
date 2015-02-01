@@ -2,7 +2,7 @@ package goloc
 
 import ()
 
-func min(a int, b int) int {
+func Min(a int, b int) int {
 	if a < b {
 		return a
 	} else {
@@ -10,7 +10,7 @@ func min(a int, b int) int {
 	}
 }
 
-func max(a int, b int) int {
+func Max(a int, b int) int {
 	if a > b {
 		return a
 	} else {
@@ -18,7 +18,7 @@ func max(a int, b int) int {
 	}
 }
 
-func abs(a int) int {
+func Abs(a int) int {
 	if a < 0 {
 		return -a
 	} else {

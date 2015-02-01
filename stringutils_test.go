@@ -4,33 +4,6 @@ import (
 	"testing"
 )
 
-func TestSplitSpacePunct(t *testing.T) {
-	res := splitSpacePunct("start er  ee r '-('([[-||]]) zée-ee -_ end")
-	if len(res) != 7 {
-		t.Fail()
-	}
-	res = splitSpacePunct(" ")
-	if len(res) != 0 {
-		t.Fail()
-	}
-	res = splitSpacePunct("")
-	if len(res) != 0 {
-		t.Fail()
-	}
-}
-
-func TestStripAccents(t *testing.T) {
-	source := "zùeèàüî~Ýa erÆ a"
-	res := stripAccents(source)
-	if res != "zueeaui~Ya erAE a" {
-		t.Fail()
-	}
-	res = stripAccents("")
-	if res != "" {
-		t.Fail()
-	}
-}
-
 var levTests = []struct {
 	source     string
 	target     string
@@ -50,12 +23,15 @@ var levTests = []struct {
 	{"PARIS", "FRANCE", false, 5},
 	{"PĂRIS", "PARIŞ", false, 2},
 	{"CAR", "Carpeaux", true, 5},
+	{"Élysées", "elysees", true, 2},
 }
 
 func TestLevenshteinDistance(t *testing.T) {
 	for _, tt := range levTests {
-		d := levenshteinDistance(tt.source, tt.target, tt.ignoreCase)
+		d := LevenshteinDistance(tt.source, tt.target, tt.ignoreCase)
 		if d != tt.distance {
+			t.Logf("Distance of %v and %v should be %v but was %v.",
+				tt.source, tt.target, tt.distance, d)
 			t.Fail()
 		}
 	}
@@ -67,14 +43,17 @@ var partialphoneTests = []struct {
 }{
 	{"", ""},
 	{"Avenue des Champs-Élysées 75008 Paris France", "AVN D S ALS 7 PR RS"},
-	{"Rue du Square Carpeaux 75018 Paris France", "R D KR SP 7 PR RS"},
+	{"Rue du Square Carpeaux 75018 Paris France", "R D KR KP 7 PR RS"},
 	{"a23 34u 78004R 345TE", "A2 3A 7 3S"},
+	{"cacécîcocücy", "KSSKKS"},
 }
 
 func TestPartialphone(t *testing.T) {
 	for _, tt := range partialphoneTests {
-		target := partialphone(tt.source)
+		target := Partialphone(tt.source)
 		if target != tt.target {
+			t.Logf("Partialphone of %v should be %v but was %v.",
+				tt.source, tt.target, target)
 			t.Fail()
 		}
 	}

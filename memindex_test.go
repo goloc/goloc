@@ -19,7 +19,7 @@ func TestMemindex(t *testing.T) {
 	memindex.Add(street1)
 
 	paris18 := new(Zone)
-	paris18.Postcode = "75008"
+	paris18.Postcode = "75018"
 	paris18.City = "Paris"
 	paris18.Country = "France"
 
@@ -29,43 +29,43 @@ func TestMemindex(t *testing.T) {
 	street2.Zone = paris18
 	memindex.Add(street2)
 
+	paris12 := new(Zone)
+	paris12.Postcode = "75012"
+	paris12.City = "Paris"
+	paris12.Country = "France"
+
+	street3 := new(Street)
+	street3.Id = "3"
+	street3.StreetName = "Rue de Lyon"
+	street3.Zone = paris12
+	memindex.Add(street3)
+
 	sizeLoc := memindex.SizeLocalisation()
-	if sizeLoc != 2 {
+	if sizeLoc != 3 {
 		t.Fail()
 	}
 
 	sizeIndex := memindex.SizeIndex()
-	if sizeIndex != 15 {
+	if sizeIndex != 16 {
 		t.Fail()
 	}
 
-	memindex.SaveInFile("golocTest.gob")
-}
-
-func TestReloadAndSearch(t *testing.T) {
-	memindex := NewMemindexFromFile("golocTest.gob")
-
-	sizeLoc := memindex.SizeLocalisation()
-	if sizeLoc != 2 {
+	results := memindex.Search("paris", 10, 600, 300)
+	if len(results) != 3 {
 		t.Fail()
 	}
 
-	sizeIndex := memindex.SizeIndex()
-	if sizeIndex != 15 {
-		t.Fail()
-	}
-
-	results := memindex.Search("paris", 10, 500, 300)
-	if len(results) != 2 {
-		t.Fail()
-	}
-
-	results = memindex.Search("avenue", 10, 500, 300)
+	results = memindex.Search("avenue", 10, 600, 300)
 	if len(results) != 1 {
 		t.Fail()
 	}
 
-	results = memindex.Search("carpe", 10, 500, 300)
+	results = memindex.Search("carpe", 10, 600, 300)
+	if len(results) != 1 {
+		t.Fail()
+	}
+
+	results = memindex.Search("rue lyon paris", 10, 600, 300)
 	if len(results) != 1 {
 		t.Fail()
 	}
