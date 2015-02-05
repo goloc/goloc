@@ -2,179 +2,210 @@ package goloc
 
 import (
 	"encoding/gob"
+	"fmt"
 	"os"
-	"sort"
 	"strconv"
 )
 
-type LinkedId struct {
-	Next *LinkedId
-	Id   string
-}
+const (
+	maxRoutine     = 8
+	maxKeyInternal = 20000
+	maxInternal    = 200000
+)
 
 type Memindex struct {
 	Localisations map[string]Localisation
-	Phoneindex    map[string]*LinkedId
+	Phoneindex    map[string]*LinkedList
 }
-
-type ByScore []*Result
-
-func (a ByScore) Len() int           { return len(a) }
-func (a ByScore) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByScore) Less(i, j int) bool { return a[i].Score > a[j].Score }
 
 func (mi *Memindex) Add(loc Localisation) {
-	id := loc.GetId()
+	keys := Nkeys(Split(Partialphone(loc.GetName())))
+	var id, k string
+	id = loc.GetId()
 	mi.Localisations[id] = loc
-	keys := Split(Partialphone(loc.GetName()))
-	for _, k := range keys {
-		l := len(k)
-		i := l
-		if l >= 2 {
-			i = 1
+	var ids *LinkedList
+	for k, _ = range keys {
+		ids = mi.Phoneindex[k]
+		if ids == nil {
+			ids = NewLinkedList()
+			mi.Phoneindex[k] = ids
 		}
-		for ; i <= l; i++ {
-			subk := k[0:i]
-			linkedId := new(LinkedId)
-			linkedId.Id = id
-			nextLinkedId, ok := mi.Phoneindex[subk]
-			if ok {
-				linkedId.Next = nextLinkedId
-			}
-			mi.Phoneindex[subk] = linkedId
-		}
+		ids.AddLast(id)
 	}
 }
+
 func (mi *Memindex) SizeLocalisation() int {
 	return len(mi.Localisations)
 }
+
 func (mi *Memindex) SizeIndex() int {
 	return len(mi.Phoneindex)
 }
+
 func (mi *Memindex) Clear() {
 	mi.Localisations = make(map[string]Localisation)
-	mi.Phoneindex = make(map[string]*LinkedId)
+	mi.Phoneindex = make(map[string]*LinkedList)
 }
+
 func (mi *Memindex) Get(id string) Localisation {
 	loc := mi.Localisations[id]
 	return loc
 }
+
 func (mi *Memindex) Remove(id string) {
 	delete(mi.Localisations, id)
 }
-func (mi *Memindex) Search(search string, max int, minScore int, maxDeviation int) []*Result {
-	keys := Split(Partialphone(search))
-	mapResult := make(map[string]*Result)
-	var maxScore, keysScore, numResult, tmpScore, i int
+
+func (mi *Memindex) Search(search string, number int) *LinkedList {
+	results := NewLinkedList()
+	keys := Nkeys(Split(Partialphone(search)))
+	mapRes := make(map[string]*Result)
+	jobs := make(chan bool, maxRoutine)
+	scores := make(chan int, maxRoutine)
+	var maxScore, tmpScore, i, l int
 	var result *Result
-	var id string
+	var id, k string
 	var ok bool
-	for _, k := range keys {
-		if _, err := strconv.Atoi(k); err != nil {
-			// is not num
-			keysScore += 2 + len(k)*len(k)
+	var ids *LinkedList
+	var elem *LinkedElement
+	var err error
+	numKeyInternal := 2147483647
+	for k = range keys {
+		ids = mi.Phoneindex[k]
+		if ids != nil && ids.Size < numKeyInternal {
+			numKeyInternal = ids.Size
 		}
 	}
-	for _, k := range keys {
-		for linkedId := mi.Phoneindex[k]; linkedId != nil; linkedId = linkedId.Next {
-			id = linkedId.Id
-			result, ok = mapResult[id]
-			if _, err := strconv.Atoi(k); err != nil {
+	numKeyInternal = Max(numKeyInternal, maxKeyInternal)
+	for k = range keys {
+		ids = mi.Phoneindex[k]
+		if ids != nil && ids.Size <= numKeyInternal {
+			if _, err = strconv.Atoi(k); err != nil {
 				// is not num
-				tmpScore = 2 + len(k)*len(k)
+				tmpScore = 3 + len(k)*len(k)
 			} else {
 				// is num
 				tmpScore = 1
 			}
-			if ok {
-				result.Score += tmpScore
-			} else {
-				result = new(Result)
-				result.Score = tmpScore
-				result.Localisation = mi.Localisations[id]
-				if result.Localisation != nil {
-					mapResult[id] = result
+			for elem = ids.First; elem != nil; elem = elem.Next {
+				id = elem.Element.(string)
+				result, ok = mapRes[id]
+				if ok {
+					result.Score += tmpScore
+				} else {
+					result = new(Result)
+					result.Score = tmpScore
+					result.Localisation = mi.Localisations[id]
+					if result.Localisation != nil {
+						mapRes[id] = result
+					}
+				}
+				if result.Score > maxScore {
+					maxScore = result.Score
 				}
 			}
 		}
 	}
 
-	numResult = 0
-	for id, result = range mapResult {
-		if result.Score >= keysScore {
-			numResult++
-		} else {
-			delete(mapResult, id)
+	// remove num score
+	maxScore -= 3
+
+	fmt.Printf("1 - found=%v maxScore=%v\n", len(mapRes), maxScore)
+
+	for id, result = range mapRes {
+		if result.Score < maxScore {
+			delete(mapRes, id)
 		}
 	}
 
+	l = len(mapRes)
+	if l > maxInternal {
+		fmt.Printf("2 - Too much found=%v\n", l)
+		return results
+	} else {
+		fmt.Printf("2 - found=%v\n", l)
+	}
+
+	go func() {
+		for _, result = range mapRes {
+			jobs <- true
+			go scoreWorker(search, result, jobs, scores)
+		}
+	}()
+
 	maxScore = 0
-	numResult = 0
-	for id, result = range mapResult {
-		tmpScore = Score(search, result.Localisation.GetName())
-		if tmpScore < minScore {
-			delete(mapResult, id)
-		} else {
-			result.Score = tmpScore
+	l = len(mapRes)
+	for i = 0; i < l; i++ {
+		select {
+		case tmpScore = <-scores:
 			if tmpScore > maxScore {
 				maxScore = tmpScore
 			}
-			numResult++
 		}
 	}
+	close(scores)
+	close(jobs)
 
-	numResult = 0
-	for id, result = range mapResult {
-		if result.Score < maxScore-maxDeviation {
-			delete(mapResult, id)
-		} else {
-			numResult++
+	fmt.Printf("3 - maxScore=%v\n", maxScore)
+
+	l = Min(len(mapRes), number)
+	for results.Size < l && maxScore > 0 {
+		tmpScore = 0
+		for _, result = range mapRes {
+			if result.Score == maxScore {
+				results.AddLast(result)
+			} else if result.Score < maxScore {
+				if result.Score > tmpScore {
+					tmpScore = result.Score
+				}
+			}
 		}
+		maxScore = tmpScore
 	}
 
-	nb := Min(numResult, max)
-	results := make([]*Result, nb)
-
-	i = 0
-	for _, result := range mapResult {
-		results[i] = result
-		i++
-		if i >= nb {
-			break
-		}
-	}
-
-	sort.Sort(ByScore(results))
+	fmt.Printf("4 - found=%v\n", results.Size)
 
 	return results
 }
+
+func scoreWorker(search string, result *Result, jobs <-chan bool, scores chan<- int) {
+	s := Score(search, result.Localisation.GetName())
+	result.Score = s - int(result.Localisation.GetPriority())
+	scores <- s
+	<-jobs
+}
+
 func (mi *Memindex) SaveInFile(filename string) {
+	fmt.Printf("save %v\n", filename)
 	file, err := os.Create(filename)
 	if err != nil {
 		panic(err)
 		return
 	}
-	defer file.Close()
 
 	encoder := gob.NewEncoder(file)
-	if err := encoder.Encode(&(mi.Phoneindex)); err != nil {
+	if err = encoder.Encode(&(mi.Phoneindex)); err != nil {
 		panic(err)
 	}
-	if err := encoder.Encode(&(mi.Localisations)); err != nil {
+	if err = encoder.Encode(&(mi.Localisations)); err != nil {
 		panic(err)
 	}
-
+	if err = file.Close(); err != nil {
+		panic(err)
+	}
 }
+
 func NewMemindex() *Memindex {
 	mi := new(Memindex)
 	mi.Clear()
 	gob.RegisterName("core.Street", &Street{})
 	gob.RegisterName("core.Address", &Address{})
-	gob.RegisterName("core.Point", &Point{})
 	gob.RegisterName("core.Zone", &Zone{})
 	return mi
 }
+
 func NewMemindexFromFile(filename string) *Memindex {
+	fmt.Printf("load %v\n", filename)
 	mi := NewMemindex()
 	file, err := os.Open(filename)
 	if err != nil {

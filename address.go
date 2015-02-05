@@ -3,12 +3,12 @@ package goloc
 import ()
 
 type Address struct {
-	Num   string
-	Point *Point
+	Num string
+	Lat float64
+	Lon float64
 }
 
 func NewAddress() *Address {
 	a := new(Address)
-	a.Point = NewPoint()
 	return a
 }

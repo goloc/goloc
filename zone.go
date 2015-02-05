@@ -11,12 +11,14 @@ type Zone struct {
 	City       string
 	Region     string
 	Country    string
-	Point      *Point
+	Lat        float64
+	Lon        float64
 }
 
 func (z *Zone) GetId() string {
 	return z.Id
 }
+
 func (z *Zone) GetName() string {
 	b := bytes.NewBufferString("")
 	if len(z.Postcode) > 0 {
@@ -51,14 +53,24 @@ func (z *Zone) GetName() string {
 	}
 	return b.String()
 }
+
 func (z *Zone) GetType() string {
 	return "zone"
 }
-func (z *Zone) GetPoint() *Point {
-	return z.Point
+
+func (z *Zone) GetPriority() uint8 {
+	return 0
 }
+
+func (z *Zone) GetLat() float64 {
+	return z.Lat
+}
+
+func (z *Zone) GetLon() float64 {
+	return z.Lon
+}
+
 func NewZone() *Zone {
 	z := new(Zone)
-	z.Point = NewPoint()
 	return z
 }

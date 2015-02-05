@@ -23,7 +23,8 @@ var levTests = []struct {
 	{"PARIS", "FRANCE", false, 5},
 	{"PĂRIS", "PARIŞ", false, 2},
 	{"CAR", "Carpeaux", true, 5},
-	{"Élysées", "elysees", true, 2},
+	{"Élysées", "elysees", false, 2},
+	{"Élysées", "elysees", true, 0},
 }
 
 func TestLevenshteinDistance(t *testing.T) {
@@ -42,9 +43,16 @@ var partialphoneTests = []struct {
 	target string
 }{
 	{"", ""},
-	{"Avenue des Champs-Élysées 75008 Paris France", "AVN D S ALS 7 PR RS"},
-	{"Rue du Square Carpeaux 75018 Paris France", "R D KR KP 7 PR RS"},
-	{"a23 34u 78004R 345TE", "A2 3A 7 3S"},
+	{"Brest", "BRST"},
+	{"Avenue des Champs-Élysées 75008 Paris France", "AVN DS SPS ALSS 7 PRS FRNS"},
+	{"Rue du Square Carpeaux 75018 Paris France", "R D SKR KRPS 7 PRS FRNS"},
+	{"Place Carnot 69002 Lyon", "PLS KRNT 6 LN"},
+	{"a23 3423u 78045R 345TE", "A 2 3 A 7 R 3 T"},
+	{" ", ""},
+	{"!", ""},
+	{"? !", ""},
+	{"t", "T"},
+	{"i", "A"},
 	{"cacécîcocücy", "KSSKKS"},
 }
 
@@ -56,5 +64,15 @@ func TestPartialphone(t *testing.T) {
 				tt.source, tt.target, target)
 			t.Fail()
 		}
+	}
+}
+
+func TestScore(t *testing.T) {
+	score1 := Score("champs elysees paris", "Avenue des Champs-Élysées 75008 Paris France")
+	score2 := Score("paris champs elysees", "Avenue des Champs-Élysées 75008 Paris France")
+	score3 := Score("champs elyse paris", "Avenue des Champs-Élysées 75008 Paris France")
+	if score1 <= score2 || score1 <= score3 || score1 != 1000 {
+		t.Logf("score1=%v score2=%v score3=%v", score1, score2, score3)
+		t.Fail()
 	}
 }

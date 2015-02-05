@@ -40,33 +40,23 @@ func TestMemindex(t *testing.T) {
 	street3.Zone = paris12
 	memindex.Add(street3)
 
-	sizeLoc := memindex.SizeLocalisation()
-	if sizeLoc != 3 {
+	list := memindex.Search("paris", 10)
+	if list.Size != 3 {
 		t.Fail()
 	}
 
-	sizeIndex := memindex.SizeIndex()
-	if sizeIndex != 16 {
+	list = memindex.Search("avenue", 10)
+	if list.Size != 1 {
 		t.Fail()
 	}
 
-	results := memindex.Search("paris", 10, 600, 300)
-	if len(results) != 3 {
+	list = memindex.Search("carpe", 10)
+	if list.Size != 1 {
 		t.Fail()
 	}
 
-	results = memindex.Search("avenue", 10, 600, 300)
-	if len(results) != 1 {
-		t.Fail()
-	}
-
-	results = memindex.Search("carpe", 10, 600, 300)
-	if len(results) != 1 {
-		t.Fail()
-	}
-
-	results = memindex.Search("rue lyon paris", 10, 600, 300)
-	if len(results) != 1 {
+	list = memindex.Search("rue lyon paris", 10)
+	if list.Size != 1 {
 		t.Fail()
 	}
 }

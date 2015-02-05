@@ -7,7 +7,7 @@ type Index interface {
 	Clear()
 	SizeLocalisation() int
 	SizeIndex() int
-	Get(id string) Localisation
-	Remove(id string)
-	Search(str string, max int, minScore int, maxDeviation int) []*Result
+	Get(string) Localisation
+	Remove(string)
+	Search(string, int) *LinkedList
 }
