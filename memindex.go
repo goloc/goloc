@@ -210,9 +210,9 @@ func (mi *Memindex) SaveInFile(filename string) {
 func NewMemindex() *Memindex {
 	mi := new(Memindex)
 	mi.Clear()
-	gob.RegisterName("core.Street", &Street{})
-	gob.RegisterName("core.Address", &Address{})
-	gob.RegisterName("core.Zone", &Zone{})
+	gob.RegisterName("goloc.Street", &Street{})
+	gob.RegisterName("goloc.Address", &Address{})
+	gob.RegisterName("goloc.Zone", &Zone{})
 	return mi
 }
 
@@ -229,5 +229,9 @@ func NewMemindexFromFile(filename string) *Memindex {
 	dataDecoder := gob.NewDecoder(file)
 	dataDecoder.Decode(&(mi.Phoneindex))
 	dataDecoder.Decode(&(mi.Localisations))
+
+	fmt.Printf("%v localisations\n", mi.SizeLocalisation())
+	fmt.Printf("%v keys\n", mi.SizeIndex())
+
 	return mi
 }
