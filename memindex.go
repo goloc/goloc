@@ -57,11 +57,12 @@ func (mi *Memindex) Remove(id string) {
 }
 
 func (mi *Memindex) Search(search string, number int) *LinkedList {
+	fmt.Printf("\nSearch '%v'\n", search)
 	results := NewLinkedList()
 	keys := Nkeys(Split(Partialphone(search)))
 	mapRes := make(map[string]*Result)
-	jobs := make(chan bool, maxRoutine)
-	scores := make(chan int, maxRoutine)
+	jobChan := make(chan bool, maxRoutine)
+	resultChan := make(chan *Result, maxRoutine)
 	var maxScore, tmpScore, i, l int
 	var result *Result
 	var id, k string
@@ -69,6 +70,7 @@ func (mi *Memindex) Search(search string, number int) *LinkedList {
 	var ids *LinkedList
 	var elem *LinkedElement
 	var err error
+	var loc Localisation
 	numKeyInternal := 2147483647
 	for k = range keys {
 		ids = mi.Phoneindex[k]
@@ -77,7 +79,9 @@ func (mi *Memindex) Search(search string, number int) *LinkedList {
 		}
 	}
 	numKeyInternal = Max(numKeyInternal, maxKeyInternal)
+	fmt.Printf("Keys: ", search)
 	for k = range keys {
+		fmt.Printf("%v ", k)
 		ids = mi.Phoneindex[k]
 		if ids != nil && ids.Size <= numKeyInternal {
 			if _, err = strconv.Atoi(k); err != nil {
@@ -93,10 +97,11 @@ func (mi *Memindex) Search(search string, number int) *LinkedList {
 				if ok {
 					result.Score += tmpScore
 				} else {
-					result = new(Result)
-					result.Score = tmpScore
-					result.Localisation = mi.Localisations[id]
-					if result.Localisation != nil {
+					loc = mi.Localisations[id]
+					if loc != nil {
+						result = new(Result)
+						result.Score = tmpScore
+						result.Id = id
 						mapRes[id] = result
 					}
 				}
@@ -106,6 +111,7 @@ func (mi *Memindex) Search(search string, number int) *LinkedList {
 			}
 		}
 	}
+	fmt.Println()
 
 	// remove num score
 	maxScore -= 3
@@ -128,23 +134,29 @@ func (mi *Memindex) Search(search string, number int) *LinkedList {
 
 	go func() {
 		for _, result = range mapRes {
-			jobs <- true
-			go scoreWorker(search, result, jobs, scores)
+			jobChan <- true
+			loc = mi.Localisations[result.Id]
+			result.Search = search
+			result.Name = loc.GetName()
+			result.Lat = loc.GetLat()
+			result.Lon = loc.GetLon()
+			result.Priority = loc.GetPriority()
+			go scoreWorker(result, jobChan, resultChan)
 		}
 	}()
 
-	maxScore = 0
+	maxScore = 1
 	l = len(mapRes)
 	for i = 0; i < l; i++ {
 		select {
-		case tmpScore = <-scores:
-			if tmpScore > maxScore {
-				maxScore = tmpScore
+		case result = <-resultChan:
+			if result.Score > maxScore {
+				maxScore = result.Score
 			}
 		}
 	}
-	close(scores)
-	close(jobs)
+	close(resultChan)
+	close(jobChan)
 
 	fmt.Printf("3 - maxScore=%v\n", maxScore)
 
@@ -168,11 +180,11 @@ func (mi *Memindex) Search(search string, number int) *LinkedList {
 	return results
 }
 
-func scoreWorker(search string, result *Result, jobs <-chan bool, scores chan<- int) {
-	s := Score(search, result.Localisation.GetName())
-	result.Score = s - int(result.Localisation.GetPriority())
-	scores <- s
-	<-jobs
+func scoreWorker(result *Result, jobChan <-chan bool, resultChan chan<- *Result) {
+	s := Score(result.Search, result.Name) - int(result.Priority)
+	result.Score = s
+	resultChan <- result
+	<-jobChan
 }
 
 func (mi *Memindex) SaveInFile(filename string) {
