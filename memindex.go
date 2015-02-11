@@ -7,17 +7,55 @@ import (
 	"strconv"
 )
 
-const (
-	maxRoutine     = 8
-	maxKeyInternal = 20000
-	maxInternal    = 200000
-)
-
 type Memindex struct {
 	Localisations map[string]Localisation
-	Phoneindex    map[string]*LinkedList
+	Keys          map[string]*LinkedList
 }
 
+func NewMemindex() *Memindex {
+	mi := new(Memindex)
+	mi.Clear()
+	GobRegister()
+	return mi
+}
+
+func NewMemindexFromFile(filename string) *Memindex {
+	fmt.Printf("load %v\n", filename)
+	mi := NewMemindex()
+	file, err := os.Open(filename)
+	if err != nil {
+		panic(err)
+		return mi
+	}
+	defer file.Close()
+
+	dataDecoder := gob.NewDecoder(file)
+	dataDecoder.Decode(&mi.Keys)
+	dataDecoder.Decode(&mi.Localisations)
+	fmt.Printf("%v localisations\n", mi.SizeLocalisation())
+	fmt.Printf("%v keys\n", mi.SizeIndex())
+
+	return mi
+}
+
+func (mi *Memindex) SaveInFile(filename string) {
+	fmt.Printf("save %v\n", filename)
+	file, err := os.Create(filename)
+	if err != nil {
+		panic(err)
+		return
+	}
+	encoder := gob.NewEncoder(file)
+	if err = encoder.Encode(mi.Keys); err != nil {
+		panic(err)
+	}
+	if err = encoder.Encode(mi.Localisations); err != nil {
+		panic(err)
+	}
+	if err = file.Close(); err != nil {
+		panic(err)
+	}
+}
 func (mi *Memindex) Add(loc Localisation) {
 	keys := Nkeys(Split(Partialphone(loc.GetName())))
 	var id, k string
@@ -25,10 +63,10 @@ func (mi *Memindex) Add(loc Localisation) {
 	mi.Localisations[id] = loc
 	var ids *LinkedList
 	for k, _ = range keys {
-		ids = mi.Phoneindex[k]
+		ids = mi.Keys[k]
 		if ids == nil {
 			ids = NewLinkedList()
-			mi.Phoneindex[k] = ids
+			mi.Keys[k] = ids
 		}
 		ids.AddLast(id)
 	}
@@ -39,12 +77,12 @@ func (mi *Memindex) SizeLocalisation() int {
 }
 
 func (mi *Memindex) SizeIndex() int {
-	return len(mi.Phoneindex)
+	return len(mi.Keys)
 }
 
 func (mi *Memindex) Clear() {
 	mi.Localisations = make(map[string]Localisation)
-	mi.Phoneindex = make(map[string]*LinkedList)
+	mi.Keys = make(map[string]*LinkedList)
 }
 
 func (mi *Memindex) Get(id string) Localisation {
@@ -73,7 +111,7 @@ func (mi *Memindex) Search(search string, number int) *LinkedList {
 	var loc Localisation
 	numKeyInternal := 2147483647
 	for k = range keys {
-		ids = mi.Phoneindex[k]
+		ids = mi.Keys[k]
 		if ids != nil && ids.Size < numKeyInternal {
 			numKeyInternal = ids.Size
 		}
@@ -82,7 +120,7 @@ func (mi *Memindex) Search(search string, number int) *LinkedList {
 	fmt.Printf("Keys: ", search)
 	for k = range keys {
 		fmt.Printf("%v ", k)
-		ids = mi.Phoneindex[k]
+		ids = mi.Keys[k]
 		if ids != nil && ids.Size <= numKeyInternal {
 			if _, err = strconv.Atoi(k); err != nil {
 				// is not num
@@ -178,60 +216,4 @@ func (mi *Memindex) Search(search string, number int) *LinkedList {
 	fmt.Printf("4 - found=%v\n", results.Size)
 
 	return results
-}
-
-func scoreWorker(result *Result, jobChan <-chan bool, resultChan chan<- *Result) {
-	s := Score(result.Search, result.Name) - int(result.Priority)
-	result.Score = s
-	resultChan <- result
-	<-jobChan
-}
-
-func (mi *Memindex) SaveInFile(filename string) {
-	fmt.Printf("save %v\n", filename)
-	file, err := os.Create(filename)
-	if err != nil {
-		panic(err)
-		return
-	}
-
-	encoder := gob.NewEncoder(file)
-	if err = encoder.Encode(&(mi.Phoneindex)); err != nil {
-		panic(err)
-	}
-	if err = encoder.Encode(&(mi.Localisations)); err != nil {
-		panic(err)
-	}
-	if err = file.Close(); err != nil {
-		panic(err)
-	}
-}
-
-func NewMemindex() *Memindex {
-	mi := new(Memindex)
-	mi.Clear()
-	gob.RegisterName("goloc.Street", &Street{})
-	gob.RegisterName("goloc.Address", &Address{})
-	gob.RegisterName("goloc.Zone", &Zone{})
-	return mi
-}
-
-func NewMemindexFromFile(filename string) *Memindex {
-	fmt.Printf("load %v\n", filename)
-	mi := NewMemindex()
-	file, err := os.Open(filename)
-	if err != nil {
-		panic(err)
-		return mi
-	}
-	defer file.Close()
-
-	dataDecoder := gob.NewDecoder(file)
-	dataDecoder.Decode(&(mi.Phoneindex))
-	dataDecoder.Decode(&(mi.Localisations))
-
-	fmt.Printf("%v localisations\n", mi.SizeLocalisation())
-	fmt.Printf("%v keys\n", mi.SizeIndex())
-
-	return mi
 }

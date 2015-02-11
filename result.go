@@ -8,6 +8,6 @@ type Result struct {
 	Id       string
 	Priority uint8
 	Name     string
-	Lat      float64
-	Lon      float64
+	Lat      float32
+	Lon      float32
 }

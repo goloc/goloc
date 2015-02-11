@@ -7,6 +7,6 @@ type Localisation interface {
 	GetName() string
 	GetType() string
 	GetPriority() uint8
-	GetLat() float64
-	GetLon() float64
+	GetLat() float32
+	GetLon() float32
 }

@@ -5,12 +5,11 @@ import (
 )
 
 type Street struct {
-	Id            string
-	StreetName    string
-	Zone          *Zone
-	Lat           float64
-	Lon           float64
-	LinkedAddress *LinkedElement
+	Id         string
+	StreetName string
+	Zone       *Zone
+	Point
+	Addresses map[string]Point
 }
 
 func (s *Street) GetId() string {
@@ -37,15 +36,16 @@ func (z *Street) GetPriority() uint8 {
 	return 2
 }
 
-func (s *Street) GetLat() float64 {
+func (s *Street) GetLat() float32 {
 	return s.Lat
 }
 
-func (s *Street) GetLon() float64 {
+func (s *Street) GetLon() float32 {
 	return s.Lon
 }
 
 func NewStreet() *Street {
 	s := new(Street)
+	s.Addresses = make(map[string]Point)
 	return s
 }

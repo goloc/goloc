@@ -11,8 +11,7 @@ type Zone struct {
 	City       string
 	Region     string
 	Country    string
-	Lat        float64
-	Lon        float64
+	Point
 }
 
 func (z *Zone) GetId() string {
@@ -62,11 +61,11 @@ func (z *Zone) GetPriority() uint8 {
 	return 0
 }
 
-func (z *Zone) GetLat() float64 {
+func (z *Zone) GetLat() float32 {
 	return z.Lat
 }
 
-func (z *Zone) GetLon() float64 {
+func (z *Zone) GetLon() float32 {
 	return z.Lon
 }
 
