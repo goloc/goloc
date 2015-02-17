@@ -32,10 +32,6 @@ func (s *Street) GetType() string {
 	return "street"
 }
 
-func (z *Street) GetPriority() uint8 {
-	return 2
-}
-
 func (s *Street) GetLat() float32 {
 	return s.Lat
 }

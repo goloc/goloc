@@ -57,10 +57,6 @@ func (z *Zone) GetType() string {
 	return "zone"
 }
 
-func (z *Zone) GetPriority() uint8 {
-	return 0
-}
-
 func (z *Zone) GetLat() float32 {
 	return z.Lat
 }

@@ -83,14 +83,15 @@ func Score(search string, reference string) int {
 	}
 	searchWords := Split(search)
 	referenceWords := Split(reference)
-	var match, topMatch, m, bestIndex, l, lTotal int
+	var match, topMatch, m, bestIndex, l, lTotal, i int
+	var currentSearchWord, currentRefenceWord string
 	lastIndex := -1
-	for _, currentSearchWord := range searchWords {
+	for _, currentSearchWord = range searchWords {
 		topMatch = 0
 		bestIndex = 0
 		l = len(currentSearchWord)
 		lTotal += l
-		for i, currentRefenceWord := range referenceWords {
+		for i, currentRefenceWord = range referenceWords {
 			m = l - LevenshteinDistance(currentSearchWord, currentRefenceWord, true)
 			if m > topMatch {
 				topMatch = m

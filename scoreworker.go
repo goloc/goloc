@@ -2,9 +2,8 @@ package goloc
 
 import ()
 
-func scoreWorker(result *Result, jobChan <-chan bool, resultChan chan<- *Result) {
-	s := Score(result.Search, result.Name) - int(result.Priority)
-	result.Score = s
+func scoreWorker(result *Result, scorer Scorer, jobChan <-chan bool, resultChan chan<- *Result) {
+	result.Score = scorer(result)
 	resultChan <- result
 	<-jobChan
 }
