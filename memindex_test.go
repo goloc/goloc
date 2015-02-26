@@ -1,7 +1,13 @@
+// Copyright 2015 Mathieu MAST. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
 package goloc
 
 import (
+	"fmt"
+	"runtime"
 	"testing"
+	"time"
 )
 
 func TestMemindex(t *testing.T) {
@@ -89,4 +95,36 @@ func TestMemindex(t *testing.T) {
 	if list.Size != 1 {
 		t.Fail()
 	}
+}
+
+func TestPerfMemindex(t *testing.T) {
+	runtime.GOMAXPROCS(16)
+	memindex := NewMemindex()
+
+	for i := 1; i <= 9; i++ {
+		zone := new(Zone)
+		zone.Id = fmt.Sprintf("Z%v", i)
+		zone.Postcode = fmt.Sprintf("6900%v", i)
+		zone.City = "Lyon"
+		zone.Country = "France"
+		memindex.Add(zone)
+	}
+
+	for i := 1; i < 10000; i++ {
+		for j := 1; j <= 9; j++ {
+			street := new(Street)
+			street.Id = fmt.Sprintf("S%v%v", i, j)
+			street.StreetName = fmt.Sprintf("Rue du numéro %v%v", i, j)
+			street.Zone = memindex.Get(fmt.Sprintf("Z%v", j)).(*Zone)
+			memindex.Add(street)
+		}
+	}
+
+	t0 := time.Now()
+	list := memindex.Search("lyon", 10, nil)
+	if list.Size != 10 {
+		t.Fail()
+	}
+	t1 := time.Now()
+	fmt.Printf("The search took %v to run.\n", t1.Sub(t0))
 }

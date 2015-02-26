@@ -1,3 +1,6 @@
+// Copyright 2015 Mathieu MAST. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
 package goloc
 
 import (
@@ -32,6 +35,7 @@ func ToUpper(r rune) rune {
 
 	case 'Y', 'Ý', 'Ŷ', 'Ÿ':
 		return 'Y'
+
 	default:
 		return up
 	}
@@ -92,10 +96,12 @@ func Score(search string, reference string) int {
 		l = len(currentSearchWord)
 		lTotal += l
 		for i, currentRefenceWord = range referenceWords {
-			m = l - LevenshteinDistance(currentSearchWord, currentRefenceWord, true)
-			if m > topMatch {
-				topMatch = m
-				bestIndex = i
+			if l-Abs(len(currentRefenceWord)-len(currentSearchWord)) > topMatch {
+				m = l - LevenshteinDistance(currentSearchWord, currentRefenceWord, true)
+				if m > topMatch {
+					topMatch = m
+					bestIndex = i
+				}
 			}
 		}
 		if lastIndex == -1 {
@@ -338,10 +344,11 @@ func Partialphone(source string) string {
 	return b.String()
 }
 
-func Nkeys(keys []string) map[string]bool {
+func Nkeys(keys []string) []string {
 	var i, j, l int
+	var k string
 	mapKeys := make(map[string]bool)
-	for _, k := range keys {
+	for _, k = range keys {
 		l = len(k)
 		i = l
 		if l >= 2 {
@@ -354,5 +361,11 @@ func Nkeys(keys []string) map[string]bool {
 			}
 		}
 	}
-	return mapKeys
+	nkeys := make([]string, len(mapKeys))
+	i = 0
+	for k, _ := range mapKeys {
+		nkeys[i] = k
+		i++
+	}
+	return nkeys
 }

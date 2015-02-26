@@ -1,15 +1,18 @@
+// Copyright 2015 Mathieu MAST. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
 package goloc
 
 import (
 	"encoding/gob"
 	"fmt"
+	"github.com/goloc/container"
 	"os"
-	//	"strconv"
 )
 
 type Memindex struct {
 	Localisations map[string]Localisation
-	Keys          map[string]*LinkedList
+	Keys          map[string]*container.LinkedList
 }
 
 func NewMemindex() *Memindex {
@@ -70,7 +73,7 @@ func (mi *Memindex) SizeIndex() int {
 
 func (mi *Memindex) Clear() {
 	mi.Localisations = make(map[string]Localisation)
-	mi.Keys = make(map[string]*LinkedList)
+	mi.Keys = make(map[string]*container.LinkedList)
 }
 
 func (mi *Memindex) Get(id string) Localisation {
@@ -78,26 +81,26 @@ func (mi *Memindex) Get(id string) Localisation {
 	return loc
 }
 
-func (mi *Memindex) getInternalIdsForKey(key string) *LinkedList {
+func (mi *Memindex) getInternalIdsForKey(key string) *container.LinkedList {
 	ids := mi.Keys[key]
 	return ids
 }
 
-func (mi *Memindex) addInternalLocalisation(loc Localisation, keys map[string]bool) {
-	var ids *LinkedList
+func (mi *Memindex) addInternalLocalisation(loc Localisation, keys []string) {
+	var ids *container.LinkedList
 	var k string
 	id := loc.GetId()
 	mi.Localisations[id] = loc
-	for k, _ = range keys {
+	for _, k = range keys {
 		ids = mi.Keys[k]
 		if ids == nil {
-			ids = NewLinkedList()
+			ids = container.NewLinkedList()
 			mi.Keys[k] = ids
 		}
-		ids.AddLast(id)
+		ids.Push(id)
 	}
 }
 
-func (mi *Memindex) Search(search string, number int, scorer Scorer) *LinkedList {
+func (mi *Memindex) Search(search string, number int, scorer Scorer) *container.LimitedBinaryTree {
 	return internalSearch(mi, search, number, scorer)
 }

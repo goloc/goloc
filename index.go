@@ -1,16 +1,21 @@
+// Copyright 2015 Mathieu MAST. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
 package goloc
 
 import (
+	"github.com/goloc/container"
 	"strconv"
+	"sync"
 )
 
 type Index interface {
 	Add(loc Localisation)
 	Get(string) Localisation
-	Search(string, int, Scorer) *LinkedList
+	Search(string, int, Scorer) *container.LimitedBinaryTree
 
-	getInternalIdsForKey(string) *LinkedList
-	addInternalLocalisation(Localisation, map[string]bool)
+	getInternalIdsForKey(string) *container.LinkedList
+	addInternalLocalisation(Localisation, []string)
 }
 
 func internalAdd(index Index, loc Localisation) {
@@ -18,44 +23,30 @@ func internalAdd(index Index, loc Localisation) {
 	index.addInternalLocalisation(loc, keys)
 }
 
-func internalSearch(index Index, search string, number int, scorer Scorer) *LinkedList {
+func internalSearch(index Index, search string, number int, scorer Scorer) *container.LimitedBinaryTree {
 	if scorer == nil {
 		scorer = DefaultScorer
 	}
-	results := NewLinkedList()
+	results := container.NewLimitedBinaryTree(CompareScoreResult, number, true)
 	keys := Nkeys(Split(Partialphone(search)))
 	mapRes := make(map[string]*Result)
-	jobChan := make(chan bool, maxRoutine)
-	resultChan := make(chan *Result, maxRoutine)
-	var maxScore, tmpScore, i, l int
-	var result *Result
-	var id, k string
-	var ok bool
-	var ids *LinkedList
-	var elem *LinkedElement
-	var err error
-	var loc Localisation
-	numKeyInternal := 2147483647
-	for k = range keys {
-		ids = index.getInternalIdsForKey(k)
-		if ids != nil && ids.Size < numKeyInternal {
-			numKeyInternal = ids.Size
-		}
-	}
-	numKeyInternal = Max(numKeyInternal, maxKeyInternal)
-	for k = range keys {
-		ids = index.getInternalIdsForKey(k)
-		if ids != nil && ids.Size <= numKeyInternal {
-			if _, err = strconv.Atoi(k); err != nil {
+	var waitgroup sync.WaitGroup
+	var mutex sync.Mutex
+	var maxKeyScore, tmpScore int
+	var ids *container.LinkedList
+	for _, key := range keys {
+		ids = index.getInternalIdsForKey(key)
+		if ids != nil && ids.Size <= maxInternal {
+			if _, err := strconv.Atoi(key); err != nil {
 				// is not num
-				tmpScore = 3 + len(k)*len(k)
+				tmpScore = 3 + len(key)*len(key)
 			} else {
 				// is num
 				tmpScore = 1
 			}
-			for elem = ids.First; elem != nil; elem = elem.Next {
-				id = elem.Element.(string)
-				result, ok = mapRes[id]
+			ids.Visit(func(element interface{}, i int) {
+				id := element.(string)
+				result, ok := mapRes[id]
 				if ok {
 					result.Score += tmpScore
 				} else {
@@ -64,69 +55,41 @@ func internalSearch(index Index, search string, number int, scorer Scorer) *Link
 					result.Id = id
 					mapRes[id] = result
 				}
-				if result.Score > maxScore {
-					maxScore = result.Score
+				if result.Score > maxKeyScore {
+					maxKeyScore = result.Score
 				}
-			}
+			})
 		}
 	}
 
 	// remove num score
-	maxScore -= 3
+	maxKeyScore -= 3
 
-	for id, result = range mapRes {
-		if result.Score < maxScore {
-			delete(mapRes, id)
-		}
-	}
-
-	l = len(mapRes)
-	if l > maxInternal {
-		return results
-	}
-
-	go func() {
-		for id, result = range mapRes {
-			loc = index.Get(result.Id)
-			jobChan <- true
+	for _, result := range mapRes {
+		if result.Score >= maxKeyScore {
+			loc := index.Get(result.Id)
 			result.Search = search
+			result.Score = 0
 			if loc != nil {
 				result.Name = loc.GetName()
 				result.Lat = loc.GetLat()
 				result.Lon = loc.GetLon()
 				result.Type = loc.GetType()
-			}
-			go scoreWorker(result, scorer, jobChan, resultChan)
-		}
-	}()
-
-	maxScore = 1
-	l = len(mapRes)
-	for i = 0; i < l; i++ {
-		select {
-		case result = <-resultChan:
-			if result.Score > maxScore {
-				maxScore = result.Score
+				waitgroup.Add(1)
+				go func(result *Result) {
+					defer waitgroup.Done()
+					result.Score = scorer(result)
+					mutex.Lock()
+					defer mutex.Unlock()
+					if result.Score > 0 {
+						results.Add(result)
+					}
+				}(result)
 			}
 		}
 	}
-	close(resultChan)
-	close(jobChan)
 
-	l = Min(len(mapRes), number)
-	for results.Size < l && maxScore > 0 {
-		tmpScore = 0
-		for _, result = range mapRes {
-			if result.Score == maxScore {
-				results.AddLast(result)
-			} else if result.Score < maxScore {
-				if result.Score > tmpScore {
-					tmpScore = result.Score
-				}
-			}
-		}
-		maxScore = tmpScore
-	}
+	waitgroup.Wait()
 
 	return results
 }
