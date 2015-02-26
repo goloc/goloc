@@ -62,27 +62,22 @@ func Distance(search string, reference string, ignoreCase bool) int {
 			if runeSearch != runeRef {
 				if ignoreCase == true {
 					if ToUpper(runeSearch) != ToUpper(runeRef) {
-						cost = 2
+						cost = 4
 					}
 				} else {
-					cost = 2
+					cost = 4
 				}
 			}
 			column[y] = Min(Min(
-				column[y]+1,    // deletion
-				column[y-1]+1), // insertion
-				lastdiag+cost) // substitution
+				column[y]+2,
+				column[y-1]+2),
+				lastdiag+cost)
 			lastdiag = olddiag
 			y++
 		}
 		x++
 	}
-	dist := column[lenSearch]
-	if dist > 0 {
-		return 1 + column[lenSearch]/2
-	} else {
-		return 0
-	}
+	return column[lenSearch] / 2
 }
 
 func Score(search string, reference string) int {
