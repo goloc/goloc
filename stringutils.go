@@ -41,7 +41,7 @@ func ToUpper(r rune) rune {
 	}
 }
 
-func LevenshteinDistance(search string, reference string, ignoreCase bool) int {
+func Distance(search string, reference string, ignoreCase bool) int {
 	var cost, lastdiag, olddiag int
 	lenSearch := 0
 	for range search {
@@ -62,22 +62,27 @@ func LevenshteinDistance(search string, reference string, ignoreCase bool) int {
 			if runeSearch != runeRef {
 				if ignoreCase == true {
 					if ToUpper(runeSearch) != ToUpper(runeRef) {
-						cost = 1
+						cost = 2
 					}
 				} else {
-					cost = 1
+					cost = 2
 				}
 			}
 			column[y] = Min(Min(
-				column[y]+1,
-				column[y-1]+1),
-				lastdiag+cost)
+				column[y]+1,    // deletion
+				column[y-1]+1), // insertion
+				lastdiag+cost) // substitution
 			lastdiag = olddiag
 			y++
 		}
 		x++
 	}
-	return column[lenSearch]
+	dist := column[lenSearch]
+	if dist > 0 {
+		return 1 + column[lenSearch]/2
+	} else {
+		return 0
+	}
 }
 
 func Score(search string, reference string) int {
@@ -97,7 +102,7 @@ func Score(search string, reference string) int {
 		lTotal += l
 		for i, currentRefenceWord = range referenceWords {
 			if l-Abs(len(currentRefenceWord)-len(currentSearchWord)) > topMatch {
-				m = l - LevenshteinDistance(currentSearchWord, currentRefenceWord, true)
+				m = l - Distance(currentSearchWord, currentRefenceWord, true)
 				if m > topMatch {
 					topMatch = m
 					bestIndex = i

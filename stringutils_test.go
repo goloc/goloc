@@ -14,25 +14,26 @@ var levTests = []struct {
 	distance   int
 }{
 	{"", "", false, 0},
-	{"PARIS", "", false, 5},
-	{"", "PARIS", false, 5},
+	{"PARIS", "", false, 3},
+	{"", "PARIS", false, 3},
 	{"PARIS", "PARIS", false, 0},
-	{"PaRIS", "PARiS", false, 2},
+	{"PaRIS", "PARiS", false, 3},
 	{"PaRIS", "PARiS", true, 0},
 	{"PARIS", "PARI", false, 1},
 	{"PARS", "PARIS", false, 1},
+	{"PAROS", "PARIS", false, 2},
 	{"PAR", "PARIS", false, 2},
-	{"PR", "PARIS", false, 3},
+	{"PR", "PARIS", false, 2},
 	{"PARIS", "FRANCE", false, 5},
-	{"PĂRIS", "PARIŞ", false, 2},
-	{"CAR", "Carpeaux", true, 5},
-	{"Élysées", "elysees", false, 2},
+	{"PĂRIS", "PARIŞ", false, 3},
+	{"CAR", "Carpeaux", true, 3},
+	{"Élysées", "elysees", false, 3},
 	{"Élysées", "elysees", true, 0},
 }
 
-func TestLevenshteinDistance(t *testing.T) {
+func TestDistance(t *testing.T) {
 	for _, tt := range levTests {
-		d := LevenshteinDistance(tt.source, tt.target, tt.ignoreCase)
+		d := Distance(tt.source, tt.target, tt.ignoreCase)
 		if d != tt.distance {
 			t.Logf("Distance of %v and %v should be %v but was %v.",
 				tt.source, tt.target, tt.distance, d)
