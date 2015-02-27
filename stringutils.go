@@ -62,22 +62,22 @@ func Distance(search string, reference string, ignoreCase bool) int {
 			if runeSearch != runeRef {
 				if ignoreCase == true {
 					if ToUpper(runeSearch) != ToUpper(runeRef) {
-						cost = 4
+						cost = 2
 					}
 				} else {
-					cost = 4
+					cost = 2
 				}
 			}
 			column[y] = Min(Min(
-				column[y]+2,
-				column[y-1]+2),
-				lastdiag+cost)
+				column[y]+1,    // insert on search
+				column[y-1]+2), // delete on search
+				lastdiag+cost) // substitution on search
 			lastdiag = olddiag
 			y++
 		}
 		x++
 	}
-	return column[lenSearch] / 2
+	return column[lenSearch]
 }
 
 func Score(search string, reference string) int {
@@ -87,21 +87,19 @@ func Score(search string, reference string) int {
 	}
 	searchWords := Split(search)
 	referenceWords := Split(reference)
-	var match, topMatch, m, bestIndex, l, lTotal, i int
+	var match, topMatch, m, bestIndex, lenCurrentSearchWord, lenTotal, i int
 	var currentSearchWord, currentRefenceWord string
 	lastIndex := -1
 	for _, currentSearchWord = range searchWords {
 		topMatch = 0
 		bestIndex = 0
-		l = len(currentSearchWord)
-		lTotal += l
+		lenCurrentSearchWord = len(currentSearchWord)
+		lenTotal += lenCurrentSearchWord
 		for i, currentRefenceWord = range referenceWords {
-			if l-Abs(len(currentRefenceWord)-len(currentSearchWord)) > topMatch {
-				m = l - Distance(currentSearchWord, currentRefenceWord, true)
-				if m > topMatch {
-					topMatch = m
-					bestIndex = i
-				}
+			m = lenCurrentSearchWord - Distance(currentSearchWord, currentRefenceWord, true)
+			if m > topMatch {
+				topMatch = m
+				bestIndex = i
 			}
 		}
 		if lastIndex == -1 {
@@ -116,7 +114,7 @@ func Score(search string, reference string) int {
 	if match < 0 {
 		return 0
 	} else {
-		return (defaultMaxScore * match) / lTotal
+		return (defaultMaxScore * match) / lenTotal
 	}
 }
 
