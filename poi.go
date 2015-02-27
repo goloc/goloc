@@ -27,6 +27,10 @@ func (p *Poi) GetName() string {
 	return b.String()
 }
 
+func (p *Poi) GetResultName(search string) string {
+	return p.GetName()
+}
+
 func (p *Poi) GetType() string {
 	return "poi:" + p.PoiType
 }

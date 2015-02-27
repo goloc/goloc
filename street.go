@@ -31,6 +31,10 @@ func (s *Street) GetName() string {
 	return b.String()
 }
 
+func (s *Street) GetResultName(search string) string {
+	return s.GetName()
+}
+
 func (s *Street) GetType() string {
 	return "street"
 }

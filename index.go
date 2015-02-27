@@ -10,17 +10,17 @@ import (
 )
 
 type Index interface {
-	Add(loc Localisation)
-	Get(string) Localisation
+	Add(loc Location)
+	Get(string) Location
 	Search(string, int, Scorer) *container.LimitedBinaryTree
 
 	getInternalIdsForKey(string) *container.LinkedList
-	addInternalLocalisation(Localisation, []string)
+	addInternalLocation(Location, []string)
 }
 
-func internalAdd(index Index, loc Localisation) {
+func internalAdd(index Index, loc Location) {
 	keys := Nkeys(Split(Partialphone(loc.GetName())))
-	index.addInternalLocalisation(loc, keys)
+	index.addInternalLocation(loc, keys)
 }
 
 func internalSearch(index Index, search string, number int, scorer Scorer) *container.LimitedBinaryTree {
@@ -34,15 +34,17 @@ func internalSearch(index Index, search string, number int, scorer Scorer) *cont
 	var mutex sync.Mutex
 	var maxKeyScore, tmpScore int
 	var ids *container.LinkedList
+	var nums *container.LinkedList
 	for _, key := range keys {
 		ids = index.getInternalIdsForKey(key)
 		if ids != nil && ids.Size <= maxInternal {
-			if _, err := strconv.Atoi(key); err != nil {
+			if n, err := strconv.Atoi(key); err != nil {
 				// is not num
 				tmpScore = 3 + len(key)*len(key)
 			} else {
 				// is num
 				tmpScore = 1
+				nums.Push(n)
 			}
 			ids.Visit(func(element interface{}, i int) {
 				id := element.(string)
@@ -71,7 +73,7 @@ func internalSearch(index Index, search string, number int, scorer Scorer) *cont
 			result.Search = search
 			result.Score = 0
 			if loc != nil {
-				result.Name = loc.GetName()
+				result.Name = loc.GetResultName(search)
 				result.Lat = loc.GetLat()
 				result.Lon = loc.GetLon()
 				result.Type = loc.GetType()

@@ -11,8 +11,8 @@ import (
 )
 
 type Memindex struct {
-	Localisations map[string]Localisation
-	Keys          map[string]*container.LinkedList
+	Locations map[string]Location
+	Keys      map[string]*container.LinkedList
 }
 
 func NewMemindex() *Memindex {
@@ -34,8 +34,8 @@ func NewMemindexFromFile(filename string) *Memindex {
 
 	dataDecoder := gob.NewDecoder(file)
 	dataDecoder.Decode(&mi.Keys)
-	dataDecoder.Decode(&mi.Localisations)
-	fmt.Printf("%v localisations\n", mi.SizeLocalisation())
+	dataDecoder.Decode(&mi.Locations)
+	fmt.Printf("%v locations\n", mi.SizeLocation())
 	fmt.Printf("%v keys\n", mi.SizeIndex())
 
 	return mi
@@ -52,19 +52,19 @@ func (mi *Memindex) SaveInFile(filename string) {
 	if err = encoder.Encode(mi.Keys); err != nil {
 		panic(err)
 	}
-	if err = encoder.Encode(mi.Localisations); err != nil {
+	if err = encoder.Encode(mi.Locations); err != nil {
 		panic(err)
 	}
 	if err = file.Close(); err != nil {
 		panic(err)
 	}
 }
-func (mi *Memindex) Add(loc Localisation) {
+func (mi *Memindex) Add(loc Location) {
 	internalAdd(mi, loc)
 }
 
-func (mi *Memindex) SizeLocalisation() int {
-	return len(mi.Localisations)
+func (mi *Memindex) SizeLocation() int {
+	return len(mi.Locations)
 }
 
 func (mi *Memindex) SizeIndex() int {
@@ -72,12 +72,12 @@ func (mi *Memindex) SizeIndex() int {
 }
 
 func (mi *Memindex) Clear() {
-	mi.Localisations = make(map[string]Localisation)
+	mi.Locations = make(map[string]Location)
 	mi.Keys = make(map[string]*container.LinkedList)
 }
 
-func (mi *Memindex) Get(id string) Localisation {
-	loc := mi.Localisations[id]
+func (mi *Memindex) Get(id string) Location {
+	loc := mi.Locations[id]
 	return loc
 }
 
@@ -86,11 +86,11 @@ func (mi *Memindex) getInternalIdsForKey(key string) *container.LinkedList {
 	return ids
 }
 
-func (mi *Memindex) addInternalLocalisation(loc Localisation, keys []string) {
+func (mi *Memindex) addInternalLocation(loc Location, keys []string) {
 	var ids *container.LinkedList
 	var k string
 	id := loc.GetId()
-	mi.Localisations[id] = loc
+	mi.Locations[id] = loc
 	for _, k = range keys {
 		ids = mi.Keys[k]
 		if ids == nil {
