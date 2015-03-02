@@ -7,10 +7,16 @@ import (
 	"strings"
 )
 
+// Score computer function type.
 type Scorer func(*Result) int
 
 func DefaultScorer(result *Result) int {
-	s := Score(result.Search, result.Name)
+	var s int
+	if result.Number != "" {
+		s = Score(result.Search, result.Number+" "+result.Name)
+	} else {
+		s = Score(result.Search, result.Name)
+	}
 	if strings.HasPrefix(result.Type, "street") {
 		s -= 3
 	}

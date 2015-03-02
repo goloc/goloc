@@ -11,6 +11,7 @@ type Result struct {
 	Id     string
 	Type   string
 	Name   string
+	Number string
 	Point
 }
 

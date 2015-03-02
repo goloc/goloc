@@ -9,21 +9,12 @@ import (
 	"sync"
 )
 
-type Index interface {
-	Add(loc Location)
-	Get(string) Location
-	Search(string, int, Scorer) *container.LimitedBinaryTree
-
-	getInternalIdsForKey(string) *container.LinkedList
-	addInternalLocation(Location, []string)
-}
-
-func internalAdd(index Index, loc Location) {
+func internalAdd(index Index, loc Location, addLocationAndKeys func(loc Location, keys []string)) {
 	keys := Nkeys(Split(Partialphone(loc.GetName())))
-	index.addInternalLocation(loc, keys)
+	addLocationAndKeys(loc, keys)
 }
 
-func internalSearch(index Index, search string, number int, scorer Scorer) *container.LimitedBinaryTree {
+func internalSearch(index Index, search string, number int, scorer Scorer, getIds func(string) *container.LinkedList) *container.LimitedBinaryTree {
 	if scorer == nil {
 		scorer = DefaultScorer
 	}
@@ -34,17 +25,15 @@ func internalSearch(index Index, search string, number int, scorer Scorer) *cont
 	var mutex sync.Mutex
 	var maxKeyScore, tmpScore int
 	var ids *container.LinkedList
-	var nums *container.LinkedList
 	for _, key := range keys {
-		ids = index.getInternalIdsForKey(key)
+		ids = getIds(key)
 		if ids != nil && ids.Size <= maxInternal {
-			if n, err := strconv.Atoi(key); err != nil {
+			if _, err := strconv.Atoi(key); err != nil {
 				// is not num
 				tmpScore = 3 + len(key)*len(key)
 			} else {
 				// is num
 				tmpScore = 1
-				nums.Push(n)
 			}
 			ids.Visit(func(element interface{}, i int) {
 				id := element.(string)
@@ -73,10 +62,19 @@ func internalSearch(index Index, search string, number int, scorer Scorer) *cont
 			result.Search = search
 			result.Score = 0
 			if loc != nil {
-				result.Name = loc.GetResultName(search)
+				result.Name = loc.GetName()
 				result.Lat = loc.GetLat()
 				result.Lon = loc.GetLon()
 				result.Type = loc.GetType()
+				bag, ok := loc.(NumberedPointBag)
+				if ok {
+					numbered := bag.GetNumberedPoint(search)
+					if numbered != nil {
+						result.Number = numbered.GetNumber()
+						result.Lat = numbered.GetLat()
+						result.Lon = numbered.GetLon()
+					}
+				}
 				waitgroup.Add(1)
 				go func(result *Result) {
 					defer waitgroup.Done()

@@ -60,7 +60,7 @@ func (mi *Memindex) SaveInFile(filename string) {
 	}
 }
 func (mi *Memindex) Add(loc Location) {
-	internalAdd(mi, loc)
+	internalAdd(mi, loc, mi.addLocationAndKeys)
 }
 
 func (mi *Memindex) SizeLocation() int {
@@ -81,12 +81,16 @@ func (mi *Memindex) Get(id string) Location {
 	return loc
 }
 
-func (mi *Memindex) getInternalIdsForKey(key string) *container.LinkedList {
+func (mi *Memindex) Search(search string, number int, scorer Scorer) *container.LimitedBinaryTree {
+	return internalSearch(mi, search, number, scorer, mi.getIds)
+}
+
+func (mi *Memindex) getIds(key string) *container.LinkedList {
 	ids := mi.Keys[key]
 	return ids
 }
 
-func (mi *Memindex) addInternalLocation(loc Location, keys []string) {
+func (mi *Memindex) addLocationAndKeys(loc Location, keys []string) {
 	var ids *container.LinkedList
 	var k string
 	id := loc.GetId()
@@ -99,8 +103,4 @@ func (mi *Memindex) addInternalLocation(loc Location, keys []string) {
 		}
 		ids.Push(id)
 	}
-}
-
-func (mi *Memindex) Search(search string, number int, scorer Scorer) *container.LimitedBinaryTree {
-	return internalSearch(mi, search, number, scorer)
 }

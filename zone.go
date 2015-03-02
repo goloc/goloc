@@ -56,10 +56,6 @@ func (z *Zone) GetName() string {
 	return b.String()
 }
 
-func (z *Zone) GetResultName(search string) string {
-	return z.GetName()
-}
-
 func (z *Zone) GetType() string {
 	return "zone"
 }
@@ -72,7 +68,8 @@ func (z *Zone) GetLon() float32 {
 	return z.Lon
 }
 
-func NewZone() *Zone {
+func NewZone(id string) *Zone {
 	z := new(Zone)
+	z.Id = id
 	return z
 }

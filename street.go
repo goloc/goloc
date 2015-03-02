@@ -12,7 +12,7 @@ type Street struct {
 	StreetName string
 	Zone       *Zone
 	Point
-	Addresses map[string]Point
+	NumberedPoints map[string]*StreetNumberedPoint
 }
 
 func (s *Street) GetId() string {
@@ -31,8 +31,16 @@ func (s *Street) GetName() string {
 	return b.String()
 }
 
-func (s *Street) GetResultName(search string) string {
-	return s.GetName()
+func (s *Street) GetNumberedPoint(search string) NumberedPoint {
+	if len(s.NumberedPoints) > 0 {
+		strs := Split(search)
+		for _, str := range strs {
+			if number, ok := s.NumberedPoints[str]; ok == true {
+				return number
+			}
+		}
+	}
+	return nil
 }
 
 func (s *Street) GetType() string {
@@ -47,8 +55,32 @@ func (s *Street) GetLon() float32 {
 	return s.Lon
 }
 
-func NewStreet() *Street {
+func NewStreet(id string) *Street {
 	s := new(Street)
-	s.Addresses = make(map[string]Point)
+	s.NumberedPoints = make(map[string]*StreetNumberedPoint)
+	s.Id = id
 	return s
+}
+
+type StreetNumberedPoint struct {
+	Number string
+	Point
+}
+
+func (np *StreetNumberedPoint) GetNumber() string {
+	return np.Number
+}
+
+func (np *StreetNumberedPoint) GetLat() float32 {
+	return np.Lat
+}
+
+func (np *StreetNumberedPoint) GetLon() float32 {
+	return np.Lon
+}
+
+func NewStreetNumberedPoint(number string) *StreetNumberedPoint {
+	np := new(StreetNumberedPoint)
+	np.Number = number
+	return np
 }

@@ -27,10 +27,6 @@ func (p *Poi) GetName() string {
 	return b.String()
 }
 
-func (p *Poi) GetResultName(search string) string {
-	return p.GetName()
-}
-
 func (p *Poi) GetType() string {
 	return "poi:" + p.PoiType
 }
@@ -43,7 +39,8 @@ func (p *Poi) GetLon() float32 {
 	return p.Lon
 }
 
-func NewPoi() *Poi {
+func NewPoi(id string) *Poi {
 	p := new(Poi)
+	p.Id = id
 	return p
 }
