@@ -81,7 +81,7 @@ func (mi *Memindex) Get(id string) Location {
 	return loc
 }
 
-func (mi *Memindex) Search(search string, number int, scorer Scorer) *container.LimitedBinaryTree {
+func (mi *Memindex) Search(search string, number int, scorer Scorer) container.Container {
 	return internalSearch(mi, search, number, scorer, mi.getIds)
 }
 
@@ -101,6 +101,6 @@ func (mi *Memindex) addLocationAndKeys(loc Location, keys []string) {
 			ids = container.NewLinkedList()
 			mi.Keys[k] = ids
 		}
-		ids.Push(id)
+		ids.Add(id)
 	}
 }

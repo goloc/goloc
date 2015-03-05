@@ -14,7 +14,7 @@ func internalAdd(index Index, loc Location, addLocationAndKeys func(loc Location
 	addLocationAndKeys(loc, keys)
 }
 
-func internalSearch(index Index, search string, number int, scorer Scorer, getIds func(string) *container.LinkedList) *container.LimitedBinaryTree {
+func internalSearch(index Index, search string, number int, scorer Scorer, getIds func(string) *container.LinkedList) container.Container {
 	if scorer == nil {
 		scorer = DefaultScorer
 	}
@@ -91,5 +91,5 @@ func internalSearch(index Index, search string, number int, scorer Scorer, getId
 
 	waitgroup.Wait()
 
-	return results
+	return container.Container(results)
 }

@@ -5,6 +5,7 @@ package goloc
 
 import (
 	"fmt"
+	"reflect"
 	"runtime"
 	"testing"
 	"time"
@@ -56,38 +57,38 @@ func TestMemindex(t *testing.T) {
 	memindex.Add(poi1)
 
 	results := memindex.Search("paris", 10, nil)
-	if results.Size != 6 {
+	if results.GetSize() != 6 {
 		t.Fail()
 	}
 
 	results = memindex.Search("avenue", 10, nil)
-	if results.Size != 1 {
+	if results.GetSize() != 1 {
 		t.Fail()
 	}
 
 	results = memindex.Search("carpe", 10, nil)
-	if results.Size != 1 {
+	if results.GetSize() != 1 {
 		t.Fail()
 	}
-	if results.Head.Element.(*Result).Name != "Rue du Square Carpeaux 75018 Paris France" {
+	if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
 		t.Fail()
 	}
 
 	results = memindex.Search("10 carpe", 10, nil)
-	if results.Size != 1 {
+	if results.GetSize() != 1 {
 		t.Fail()
 	}
-	if results.Head.Element.(*Result).Name != "Rue du Square Carpeaux 75018 Paris France" {
+	if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
 		t.Fail()
 	}
 
 	results = memindex.Search("rue lyon paris", 10, nil)
-	if results.Size != 1 {
+	if results.GetSize() != 1 {
 		t.Fail()
 	}
 
 	results = memindex.Search("lyon", 10, nil)
-	if results.Size != 2 {
+	if results.GetSize() != 2 {
 		t.Fail()
 	}
 
@@ -99,7 +100,7 @@ func TestMemindex(t *testing.T) {
 			return 0
 		}
 	})
-	if results.Size != 1 {
+	if results.GetSize() != 1 {
 		t.Fail()
 	}
 }
@@ -131,7 +132,7 @@ func TestPerfMemindex(t *testing.T) {
 
 	t0 := time.Now()
 	results := memindex.Search("9 rue numero lyon", 10, nil)
-	if results.Size != 10 {
+	if results.GetSize() != 10 {
 		t.Fail()
 	}
 	t1 := time.Now()

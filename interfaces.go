@@ -13,7 +13,7 @@ type Index interface {
 	// Get location
 	Get(string) Location
 	// Search
-	Search(string, int, Scorer) *container.LimitedBinaryTree
+	Search(string, int, Scorer) container.Container
 }
 
 // Location definition.
