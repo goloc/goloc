@@ -52,10 +52,19 @@ var partialphoneTests = []struct {
 }{
 	{"", ""},
 	{"Brest", "BRST"},
-	{"Avenue des Champs-Élysées 75008 Paris France", "AVN DS SPS ALSS 7 PRS FRNS"},
+	{"Avenue des Champs-Élysées 75008 Paris France", "AVN DS SMPS ALSS 7 PRS FRNS"},
 	{"Rue du Square Carpeaux 75018 Paris France", "R D SKR KRPS 7 PRS FRNS"},
 	{"Place Carnot 69002 Lyon", "PLS KRNT 6 LN"},
-	{"a23 3423u 78045R 345TE", "A 2 3 A 7 R 3 T"},
+	{"Rue Tissot 69009 Lyon", "R TST 6 LN"},
+	{"Grandclément", "JRNDKLMNT"},
+	{"Grand Clément", "JRND KLMNT"},
+	{"Grandchemin", "JRNDSMN"},
+	{"Grand chemin", "JRND SMN"},
+	{"Grandcarmeaux", "JRNDKRMS"},
+	{"Grand carmeaux", "JRND KRMS"},
+	{"Piscine Immeuble", "PSN AMBL"},
+	{"Straßer STRAẞER", "STRSR STRSR"},
+	{"a23 T34 TER34 3423u 78045R 34567TEERT", "A2 T3 TR3 3A 7R 3TRT"},
 	{" ", ""},
 	{"!", ""},
 	{"? !", ""},
@@ -79,7 +88,7 @@ func TestScore(t *testing.T) {
 	score1 := Score("champs elysees paris", "Avenue des Champs-Élysées 75008 Paris France")
 	score2 := Score("paris champs elysees", "Avenue des Champs-Élysées 75008 Paris France")
 	score3 := Score("champs elyse paris", "Avenue des Champs-Élysées 75008 Paris France")
-	if score1 <= score2 || score1 <= score3 || score1 != 1000 {
+	if score1 <= score2 || score1 <= score3 {
 		t.Logf("score1=%v score2=%v score3=%v", score1, score2, score3)
 		t.Fail()
 	}
@@ -88,6 +97,14 @@ func TestScore(t *testing.T) {
 	score5 := Score("eco", "Cite Arbrisseau All C 59176 Écaillon")
 	if score4 <= score5 {
 		t.Logf("score4=%v score5=%v", score4, score5)
+		t.Fail()
+	}
+}
+
+func TestMSplit(t *testing.T) {
+	msplit := MSplit("A DU CLAIRE")
+	if len(msplit) != 15 {
+		t.Logf("msplit=%v", msplit)
 		t.Fail()
 	}
 }

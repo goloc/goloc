@@ -13,7 +13,7 @@ type Index interface {
 	// Get location
 	Get(string) Location
 	// Search
-	Search(string, int, Scorer) container.Container
+	Search(string, int, Filter) container.Container
 }
 
 // Location definition.

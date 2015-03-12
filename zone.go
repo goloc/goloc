@@ -14,7 +14,8 @@ type Zone struct {
 	City       string
 	Region     string
 	Country    string
-	Point
+	PointMin   Point
+	PointMax   Point
 }
 
 func (z *Zone) GetId() string {
@@ -61,11 +62,11 @@ func (z *Zone) GetType() string {
 }
 
 func (z *Zone) GetLat() float32 {
-	return z.Lat
+	return (z.PointMin.Lat + z.PointMax.Lat) / 2
 }
 
 func (z *Zone) GetLon() float32 {
-	return z.Lon
+	return (z.PointMin.Lon + z.PointMax.Lon) / 2
 }
 
 func NewZone(id string) *Zone {

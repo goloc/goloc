@@ -15,33 +15,84 @@ func Split(source string) []string {
 	})
 }
 
-func ToUpper(r rune) rune {
-	up := unicode.ToUpper(r)
-	switch up {
-	case 'Á', 'À', 'Ã', 'Ä', 'Å', 'Ā', 'Æ':
-		return 'A'
+func MSplit(source string) []string {
+	strs := Split(source)
+	mapsplit := make(map[string]bool)
+	for _, str := range strs {
+		mapsplit[str] = true
+		k := 0
 
-	case 'È', 'É', 'Ê', 'Ë', 'Ē', 'Œ':
-		return 'E'
+		for i, _ := range str {
+			l := 0
+			for j, _ := range str {
+				if j > i {
+					if i == 0 {
+						mapsplit[str[i:j]] = true
+					} else if l > k+1 {
+						mapsplit[str[i:j]] = true
+					}
+				}
+				l++
+			}
+			k++
+		}
+	}
+	mplit := make([]string, len(mapsplit))
+	i := 0
+	for str, _ := range mapsplit {
+		mplit[i] = str
+		i++
+	}
+	return mplit
+}
 
-	case 'Ì', 'Í', 'Î', 'Ï', 'Ī':
-		return 'I'
+func UpperUnaccentUnpunctString(str string) string {
+	bs := bytes.NewBufferString("")
+	for _, r := range str {
+		bs.WriteRune(UpperUnaccentUnpunctRune(r))
+	}
+	return bs.String()
+}
 
-	case 'Ó', 'Ò', 'Ô', 'Õ', 'Ö', 'Ø', 'Ō':
-		return 'O'
+func UpperUnaccentUnpunctRune(r rune) rune {
+	if unicode.IsLetter(r) {
+		up := unicode.ToUpper(r)
+		switch up {
+		case 'Á', 'À', 'Ã', 'Ä', 'Å', 'Ā', 'Æ':
+			return 'A'
 
-	case 'Ú', 'Ù', 'Û', 'Ü', 'Ū':
-		return 'U'
+		case 'È', 'É', 'Ê', 'Ë', 'Ē', 'Œ':
+			return 'E'
 
-	case 'Y', 'Ý', 'Ŷ', 'Ÿ':
-		return 'Y'
+		case 'Ì', 'Í', 'Î', 'Ï', 'Ī':
+			return 'I'
 
-	default:
-		return up
+		case 'Ó', 'Ò', 'Ô', 'Õ', 'Ö', 'Ø', 'Ō':
+			return 'O'
+
+		case 'Ú', 'Ù', 'Û', 'Ü', 'Ū':
+			return 'U'
+
+		case 'Ý', 'Ŷ', 'Ÿ':
+			return 'Y'
+
+		case 'Ñ':
+			return 'N'
+
+		case 'Ŵ':
+			return 'W'
+
+		default:
+			return up
+		}
+	} else if unicode.IsNumber(r) {
+		return r
+	} else {
+		return ' '
 	}
 }
 
-func Distance(search string, reference string, ignoreCase bool) int {
+func Distance(search, reference string, ignoreCase bool) int {
 	var cost, lastdiag, olddiag int
 	lenSearch := 0
 	for range search {
@@ -61,7 +112,7 @@ func Distance(search string, reference string, ignoreCase bool) int {
 			cost = 0
 			if runeSearch != runeRef {
 				if ignoreCase == true {
-					if ToUpper(runeSearch) != ToUpper(runeRef) {
+					if UpperUnaccentUnpunctRune(runeSearch) != UpperUnaccentUnpunctRune(runeRef) {
 						cost = 2
 					}
 				} else {
@@ -80,8 +131,7 @@ func Distance(search string, reference string, ignoreCase bool) int {
 	return column[lenSearch]
 }
 
-func Score(search string, reference string) int {
-	defaultMaxScore := 1000
+func Score(search, reference string) int {
 	if search == "" || reference == "" {
 		return 0
 	}
@@ -114,7 +164,29 @@ func Score(search string, reference string) int {
 	if match < 0 {
 		return 0
 	} else {
-		return (defaultMaxScore * match) / lenTotal
+		return 100 * match
+	}
+}
+
+func PartialphoneWriteLast(b *bytes.Buffer, ptrCurrentRune, ptrLastRune, ptrPenultimateRune *rune) {
+	if *ptrLastRune != ' ' && *ptrPenultimateRune != *ptrLastRune {
+		if *ptrLastRune != 'A' {
+			if *ptrLastRune == 'C' {
+				switch *ptrCurrentRune {
+				case 'H':
+					*ptrLastRune = 'S'
+				case 'E', 'I', 'Y':
+					*ptrLastRune = 'S'
+				default:
+					*ptrLastRune = 'K'
+				}
+			}
+			if *ptrLastRune == 'P' && *ptrCurrentRune == 'H' {
+				*ptrLastRune = 'F'
+			}
+			b.WriteRune(*ptrLastRune)
+		}
+		*ptrPenultimateRune = *ptrLastRune
 	}
 }
 
@@ -124,246 +196,149 @@ func Partialphone(source string) string {
 	penultimateRune := ' '
 
 	for _, currentRune := range source {
-		if unicode.IsPunct(currentRune) || unicode.IsSpace(currentRune) || unicode.IsControl(currentRune) || unicode.IsSymbol(currentRune) || unicode.IsMark(currentRune) {
-			currentRune = ' '
-		} else if unicode.IsNumber(currentRune) {
-			if !unicode.IsNumber(lastRune) && lastRune != ' ' {
-				b.WriteRune(' ')
-			}
-		} else {
-			if unicode.IsNumber(lastRune) {
-				b.WriteRune(' ')
-			}
-		}
+		currentRune = UpperUnaccentUnpunctRune(currentRune)
 
 		switch currentRune {
-		case 'B', 'b':
-			if lastRune != 0 && penultimateRune != lastRune {
+
+		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+			if lastRune != ' ' && penultimateRune != lastRune {
+				if lastRune != 'A' && lastRune != '1' {
+					b.WriteRune(lastRune)
+				}
 				penultimateRune = lastRune
 			}
-			lastRune = 'B'
+			if lastRune != '1' {
+				b.WriteRune(currentRune)
+			}
+			lastRune = '1'
 
-		case 'C', 'c':
-			if lastRune != 0 && penultimateRune != lastRune {
+		case 'A', 'E', 'I', 'O', 'U', 'Y':
+			if lastRune == 'C' {
+				switch currentRune {
+				case 'E', 'I', 'Y':
+					lastRune = 'S'
+				default:
+					lastRune = 'K'
+				}
+			}
+			if lastRune != ' ' && penultimateRune != lastRune {
+				if lastRune != 'A' && lastRune != '1' {
+					b.WriteRune(lastRune)
+				}
 				penultimateRune = lastRune
 			}
-			lastRune = 'C'
-
-		case 'Ç', 'ç':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
+			if lastRune == ' ' || lastRune == '1' {
+				b.WriteRune('A')
 			}
-			lastRune = 'S'
+			lastRune = 'A'
 
-		case 'D', 'd':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'D'
+		case 'B':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'F', 'f':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'F'
+		case 'C':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'G', 'g':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'J'
+		case 'Ç':
+			currentRune = 'S'
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'H', 'h':
-			if lastRune == 'P' {
-				lastRune = 'F'
-			} else if lastRune == 'C' {
-				lastRune = 'S'
-			} else {
-				// Silent
-			}
+		case 'D':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'J', 'j':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'J'
+		case 'F':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'K', 'k':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'K'
+		case 'G':
+			currentRune = 'J'
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'L', 'l':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'L'
+		case 'H':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
 
-		case 'M', 'm':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'M'
+		case 'J':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'N', 'n', 'Ñ', 'ñ':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'N'
+		case 'K':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'P', 'p':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'P'
+		case 'L':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'Q', 'q':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'K'
+		case 'M':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'R', 'r':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'R'
+		case 'N':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'S', 's', 'ẞ', 'ß':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'S'
+		case 'P':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'T', 't':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'T'
+		case 'Q':
+			currentRune = 'K'
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'V', 'v':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'V'
+		case 'R':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'W', 'w':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'V'
+		case 'S', 'ẞ', 'ß':
+			currentRune = 'S'
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'X', 'x':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'S'
+		case 'T':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
-		case 'Z', 'z':
-			if lastRune != 0 && penultimateRune != lastRune {
-				penultimateRune = lastRune
-			}
-			lastRune = 'S'
+		case 'V':
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
+
+		case 'W':
+			currentRune = 'W'
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
+
+		case 'X':
+			currentRune = 'S'
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
+
+		case 'Z':
+			currentRune = 'S'
+			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
+			lastRune = currentRune
 
 		default:
-			if unicode.IsPunct(currentRune) || unicode.IsSpace(currentRune) || unicode.IsControl(currentRune) || unicode.IsSymbol(currentRune) || unicode.IsMark(currentRune) {
-				switch lastRune {
-				case ' ':
-
-				default:
-					if penultimateRune != 0 && penultimateRune != lastRune && penultimateRune != ' ' && penultimateRune != 'A' && !unicode.IsNumber(penultimateRune) {
-						b.WriteRune(penultimateRune)
-						penultimateRune = ' '
-					}
-					if lastRune != 0 && lastRune != ' ' && lastRune != 'A' && !unicode.IsNumber(lastRune) {
-						b.WriteRune(lastRune)
-					}
-					b.WriteRune(' ')
-					lastRune = ' '
-				}
-			} else if unicode.IsNumber(currentRune) {
-				if lastRune == ' ' {
-					b.WriteRune(currentRune)
-					lastRune = currentRune
-				} else if lastRune == 'A' {
-					b.WriteRune(currentRune)
-					lastRune = currentRune
-				}
-
-			} else {
-				if lastRune == ' ' {
-					b.WriteRune('A')
-					lastRune = 'A'
-				} else if unicode.IsNumber(lastRune) {
-					b.WriteRune('A')
-					lastRune = 'A'
-				} else if lastRune == 'A' {
-					lastRune = 'A'
-				} else if lastRune == 'C' {
-					switch unicode.ToUpper(currentRune) {
-					case 'E', 'È', 'É', 'Ê', 'Ë', 'Ē', 'I', 'Ì', 'Í', 'Î', 'Ï', 'Ī', 'Y', 'Ý', 'Ŷ', 'Ÿ':
-						if penultimateRune != 0 && penultimateRune != lastRune && penultimateRune != ' ' && penultimateRune != 'A' && !unicode.IsNumber(penultimateRune) {
-							b.WriteRune(penultimateRune)
-							penultimateRune = ' '
-						}
-						b.WriteRune('S')
-					default:
-						if penultimateRune != 0 && penultimateRune != lastRune && penultimateRune != ' ' && penultimateRune != 'A' && !unicode.IsNumber(penultimateRune) {
-							b.WriteRune(penultimateRune)
-							penultimateRune = ' '
-						}
-						b.WriteRune('K')
-					}
-					lastRune = 0
-				} else {
-					if lastRune != 0 {
-						if penultimateRune != 0 && penultimateRune != lastRune && penultimateRune != ' ' && penultimateRune != 'A' && !unicode.IsNumber(penultimateRune) {
-							b.WriteRune(penultimateRune)
-							penultimateRune = ' '
-						}
-						b.WriteRune(lastRune)
-					}
-					lastRune = 0
-				}
+			if lastRune != ' ' && lastRune != 'A' && lastRune != '1' && penultimateRune != lastRune {
+				b.WriteRune(lastRune)
+				penultimateRune = lastRune
 			}
-
+			if lastRune != ' ' {
+				b.WriteRune(currentRune)
+			}
+			lastRune = ' '
 		}
 	}
 
-	if lastRune != ' ' && lastRune != 0 && lastRune != 'A' {
-		if penultimateRune != 0 && penultimateRune != lastRune && penultimateRune != ' ' && penultimateRune != 'A' && !unicode.IsNumber(penultimateRune) {
-			b.WriteRune(penultimateRune)
-			penultimateRune = ' '
+	if lastRune != ' ' && penultimateRune != lastRune {
+		if lastRune != 'A' {
+			b.WriteRune(lastRune)
 		}
-		b.WriteRune(lastRune)
 	}
 
 	return b.String()
-}
-
-func Nkeys(keys []string) []string {
-	var i, j, l int
-	var k string
-	mapKeys := make(map[string]bool)
-	for _, k = range keys {
-		l = len(k)
-		i = l
-		if l >= 2 {
-			i = 1
-		}
-		for ; i <= l; i++ {
-			for j = 0; i+j <= l; j++ {
-				subk := k[j : j+i]
-				mapKeys[subk] = true
-			}
-		}
-	}
-	nkeys := make([]string, len(mapKeys))
-	i = 0
-	for k, _ := range mapKeys {
-		nkeys[i] = k
-		i++
-	}
-	return nkeys
 }

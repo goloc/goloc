@@ -93,11 +93,11 @@ func TestMemindex(t *testing.T) {
 	}
 
 	// Search only poi:Gare
-	results = memindex.Search("lyon", 10, func(result *Result) int {
+	results = memindex.Search("lyon", 10, func(result *Result) bool {
 		if result.Type == "poi:Gare" {
-			return DefaultScorer(result)
+			return true
 		} else {
-			return 0
+			return false
 		}
 	})
 	if results.GetSize() != 1 {

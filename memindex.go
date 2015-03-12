@@ -12,11 +12,15 @@ import (
 
 type Memindex struct {
 	Locations map[string]Location
-	Keys      map[string]*container.LinkedList
+	Keys      map[string]container.Container
+	KeyLimit  int
+	LocLimit  int
 }
 
 func NewMemindex() *Memindex {
 	mi := new(Memindex)
+	mi.KeyLimit = defaultKeyLimit
+	mi.LocLimit = defaultLocLimit
 	mi.Clear()
 	GobRegister()
 	return mi
@@ -73,7 +77,7 @@ func (mi *Memindex) SizeIndex() int {
 
 func (mi *Memindex) Clear() {
 	mi.Locations = make(map[string]Location)
-	mi.Keys = make(map[string]*container.LinkedList)
+	mi.Keys = make(map[string]container.Container)
 }
 
 func (mi *Memindex) Get(id string) Location {
@@ -81,17 +85,17 @@ func (mi *Memindex) Get(id string) Location {
 	return loc
 }
 
-func (mi *Memindex) Search(search string, number int, scorer Scorer) container.Container {
-	return internalSearch(mi, search, number, scorer, mi.getIds)
+func (mi *Memindex) Search(search string, number int, filter Filter) container.Container {
+	return internalSearch(mi, search, number, mi.KeyLimit, mi.LocLimit, filter, mi.getIds)
 }
 
-func (mi *Memindex) getIds(key string) *container.LinkedList {
+func (mi *Memindex) getIds(key string) container.Container {
 	ids := mi.Keys[key]
 	return ids
 }
 
 func (mi *Memindex) addLocationAndKeys(loc Location, keys []string) {
-	var ids *container.LinkedList
+	var ids container.Container
 	var k string
 	id := loc.GetId()
 	mi.Locations[id] = loc

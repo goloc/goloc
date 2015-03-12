@@ -5,6 +5,7 @@ package goloc
 
 import (
 	"encoding/gob"
+	"github.com/goloc/container"
 )
 
 func GobRegister() {
@@ -12,4 +13,7 @@ func GobRegister() {
 	gob.RegisterName("goloc.Zone", &Zone{})
 	gob.RegisterName("goloc.Poi", &Poi{})
 	gob.RegisterName("goloc.Point", &Point{})
+	gob.RegisterName("container.LinkedList", &container.LinkedList{})
+	gob.RegisterName("container.BinaryTree", &container.BinaryTree{})
+	gob.RegisterName("container.LimitedBinaryTree", &container.LimitedBinaryTree{})
 }
