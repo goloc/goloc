@@ -11,16 +11,19 @@ import (
 )
 
 type Memindex struct {
-	Locations map[string]Location
-	Keys      map[string]container.Container
-	KeyLimit  int
-	LocLimit  int
+	locations map[string]Location
+	keys      map[string]container.Container
+	internal
 }
 
 func NewMemindex() *Memindex {
 	mi := new(Memindex)
-	mi.KeyLimit = defaultKeyLimit
-	mi.LocLimit = defaultLocLimit
+	mi.tolerance = defaultTolerance
+	mi.keyLimit = defaultKeyLimit
+	mi.locLimit = defaultLocLimit
+	mi.get = mi.Get
+	mi.internal.getIds = mi.getIds
+	mi.internal.addLocationAndKeys = mi.addLocationAndKeys
 	mi.Clear()
 	GobRegister()
 	return mi
@@ -37,8 +40,8 @@ func NewMemindexFromFile(filename string) *Memindex {
 	defer file.Close()
 
 	dataDecoder := gob.NewDecoder(file)
-	dataDecoder.Decode(&mi.Keys)
-	dataDecoder.Decode(&mi.Locations)
+	dataDecoder.Decode(&mi.keys)
+	dataDecoder.Decode(&mi.locations)
 	fmt.Printf("%v locations\n", mi.SizeLocation())
 	fmt.Printf("%v keys\n", mi.SizeIndex())
 
@@ -53,10 +56,10 @@ func (mi *Memindex) SaveInFile(filename string) {
 		return
 	}
 	encoder := gob.NewEncoder(file)
-	if err = encoder.Encode(mi.Keys); err != nil {
+	if err = encoder.Encode(mi.keys); err != nil {
 		panic(err)
 	}
-	if err = encoder.Encode(mi.Locations); err != nil {
+	if err = encoder.Encode(mi.locations); err != nil {
 		panic(err)
 	}
 	if err = file.Close(); err != nil {
@@ -64,33 +67,33 @@ func (mi *Memindex) SaveInFile(filename string) {
 	}
 }
 func (mi *Memindex) Add(loc Location) {
-	internalAdd(mi, loc, mi.addLocationAndKeys)
+	mi.add(loc)
 }
 
 func (mi *Memindex) SizeLocation() int {
-	return len(mi.Locations)
+	return len(mi.locations)
 }
 
 func (mi *Memindex) SizeIndex() int {
-	return len(mi.Keys)
+	return len(mi.keys)
 }
 
 func (mi *Memindex) Clear() {
-	mi.Locations = make(map[string]Location)
-	mi.Keys = make(map[string]container.Container)
+	mi.locations = make(map[string]Location)
+	mi.keys = make(map[string]container.Container)
 }
 
 func (mi *Memindex) Get(id string) Location {
-	loc := mi.Locations[id]
+	loc := mi.locations[id]
 	return loc
 }
 
 func (mi *Memindex) Search(search string, number int, filter Filter) container.Container {
-	return internalSearch(mi, search, number, mi.KeyLimit, mi.LocLimit, filter, mi.getIds)
+	return mi.search(search, number, filter)
 }
 
 func (mi *Memindex) getIds(key string) container.Container {
-	ids := mi.Keys[key]
+	ids := mi.keys[key]
 	return ids
 }
 
@@ -98,12 +101,12 @@ func (mi *Memindex) addLocationAndKeys(loc Location, keys []string) {
 	var ids container.Container
 	var k string
 	id := loc.GetId()
-	mi.Locations[id] = loc
+	mi.locations[id] = loc
 	for _, k = range keys {
-		ids = mi.Keys[k]
+		ids = mi.keys[k]
 		if ids == nil {
 			ids = container.NewLinkedList()
-			mi.Keys[k] = ids
+			mi.keys[k] = ids
 		}
 		ids.Add(id)
 	}

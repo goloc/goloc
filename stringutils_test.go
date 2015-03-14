@@ -102,8 +102,18 @@ func TestScore(t *testing.T) {
 }
 
 func TestMSplit(t *testing.T) {
-	msplit := MSplit("A DU CLAIRE")
-	if len(msplit) != 15 {
+	msplit := MSplit("A DU CLAIRE", 1, 6)
+	if len(msplit) != 24 {
+		t.Logf("msplit=%v", msplit)
+		t.Fail()
+	}
+	msplit = MSplit("A DU CLAIRE", 2, 3)
+	if len(msplit) != 10 {
+		t.Logf("msplit=%v", msplit)
+		t.Fail()
+	}
+	msplit = MSplit("A DU CLAIRE", 2, 2)
+	if len(msplit) != 6 {
 		t.Logf("msplit=%v", msplit)
 		t.Fail()
 	}

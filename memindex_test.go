@@ -13,6 +13,7 @@ import (
 
 func TestMemindex(t *testing.T) {
 	memindex := NewMemindex()
+	memindex.tolerance = 0
 
 	paris8 := NewZone("Z1")
 	paris8.Postcode = "75008"

@@ -15,22 +15,17 @@ func Split(source string) []string {
 	})
 }
 
-func MSplit(source string) []string {
+func MSplit(source string, min, max int) []string {
 	strs := Split(source)
 	mapsplit := make(map[string]bool)
 	for _, str := range strs {
-		mapsplit[str] = true
 		k := 0
-
 		for i, _ := range str {
 			l := 0
 			for j, _ := range str {
-				if j > i {
-					if i == 0 {
-						mapsplit[str[i:j]] = true
-					} else if l > k+1 {
-						mapsplit[str[i:j]] = true
-					}
+				size := j - i + 1
+				if size > 0 && size <= max && size >= min {
+					mapsplit[str[i:j+1]] = true
 				}
 				l++
 			}
