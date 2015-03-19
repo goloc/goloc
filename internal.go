@@ -4,8 +4,8 @@
 package goloc
 
 import (
+	"fmt"
 	"github.com/goloc/container"
-	"strings"
 	"sync"
 )
 
@@ -20,72 +20,58 @@ type internal struct {
 
 func (inter *internal) add(loc Location) {
 	name := loc.GetName()
-	keys := MSplit(Partialphone(name), 1, 3)
-	inter.addLocationAndKeys(loc, keys)
+	mkeys := MSplit(Partialphone(name))
+	inter.addLocationAndKeys(loc, mkeys)
 }
 
 func (inter *internal) search(search string, number int, filter Filter) container.Container {
 	if filter == nil {
 		filter = DefaultFilter
 	}
-	words := MSplit(UpperUnaccentUnpunctString(search), 2, 2)
-	keys := MSplit(Partialphone(search), 1, 3)
+
+	words := Split(UpperUnaccentUnpunctString(search))
+	mwords := MSplit(UpperUnaccentUnpunctString(search))
+	mkeys := MSplit(Partialphone(search))
+
 	var waitgroup sync.WaitGroup
 	var mutex sync.Mutex
 
-	maxKeyScore := 0
-	bestIdsSize := 0
-	var bestIds container.Container
+	max := 0
 	mapRes := make(map[string]*Result)
-	for _, key := range keys {
+	for _, key := range mkeys {
 		waitgroup.Add(1)
 		go func(key string) {
 			defer waitgroup.Done()
 			ids := inter.getIds(key)
-			mutex.Lock()
-			defer mutex.Unlock()
 			if ids != nil && ids.GetSize() > 0 {
 				if ids.GetSize() <= inter.keyLimit {
 					ids.Visit(func(element interface{}, i int) {
 						id := element.(string)
+						mutex.Lock()
 						result, ok := mapRes[id]
 						if ok {
 							result.Score++
 						} else {
 							result = new(Result)
-							result.Score++
+							result.Score = 1
 							result.Id = id
 							mapRes[id] = result
 						}
-						if result.Score > maxKeyScore {
-							maxKeyScore = result.Score
+						if result.Score > max {
+							max = result.Score
 						}
+						mutex.Unlock()
 					})
 				} else {
-					if bestIdsSize == 0 || ids.GetSize() < bestIdsSize {
-						bestIds = ids
-						bestIdsSize = ids.GetSize()
-					}
+					fmt.Printf("Key %v has to many elements (%v).\n", key, ids.GetSize())
 				}
 			}
 		}(key)
 	}
 	waitgroup.Wait()
 
-	if len(mapRes) == 0 && bestIds != nil {
-		bestIds.Visit(func(element interface{}, i int) {
-			id := element.(string)
-			result := new(Result)
-			result.Score = 1
-			result.Id = id
-			mapRes[id] = result
-		})
-		maxKeyScore = 1
-	}
-
 	tmpResults := container.NewLimitedBinaryTree(CompareScoreResult, inter.locLimit, true)
-	minKeyScore := maxKeyScore - inter.tolerance
-	maxKeyScore = 0
+	minKeyScore := max - inter.tolerance
 	for _, result := range mapRes {
 		if result.Score >= minKeyScore {
 			waitgroup.Add(1)
@@ -93,6 +79,7 @@ func (inter *internal) search(search string, number int, filter Filter) containe
 				defer waitgroup.Done()
 				loc := inter.get(result.Id)
 				if loc != nil {
+					result.Score = 0
 					result.Search = search
 					result.Name = loc.GetName()
 					result.Lat = loc.GetLat()
@@ -108,18 +95,12 @@ func (inter *internal) search(search string, number int, filter Filter) containe
 						}
 					}
 					if filter(result) {
-						name := UpperUnaccentUnpunctString(result.Name)
-						for _, word := range words {
-							if strings.Contains(name, word) {
-								result.Score += len(word)
-							}
+						result.Score += QuickScore(mwords, UpperUnaccentUnpunctString(result.Name))
+						if result.Score > 0 {
+							mutex.Lock()
+							tmpResults.Add(result)
+							mutex.Unlock()
 						}
-						mutex.Lock()
-						if result.Score > maxKeyScore {
-							maxKeyScore = result.Score
-						}
-						tmpResults.Add(result)
-						mutex.Unlock()
 					}
 				}
 			}(result)
@@ -132,11 +113,11 @@ func (inter *internal) search(search string, number int, filter Filter) containe
 		waitgroup.Add(1)
 		go func(result *Result) {
 			defer waitgroup.Done()
-			result.Score += Score(result.Search, result.Name)
-			mutex.Lock()
-			defer mutex.Unlock()
+			result.Score += Score(words, UpperUnaccentUnpunctString(result.Name))
 			if result.Score > 0 {
+				mutex.Lock()
 				results.Add(result)
+				mutex.Unlock()
 			}
 		}(element.(*Result))
 	})

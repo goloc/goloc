@@ -15,21 +15,20 @@ func Split(source string) []string {
 	})
 }
 
-func MSplit(source string, min, max int) []string {
+func MSplit(source string) []string {
 	strs := Split(source)
 	mapsplit := make(map[string]bool)
 	for _, str := range strs {
-		k := 0
+		if len(str) <= 3 {
+			mapsplit[str] = true
+		}
 		for i, _ := range str {
-			l := 0
 			for j, _ := range str {
 				size := j - i + 1
-				if size > 0 && size <= max && size >= min {
+				if size > 0 && size <= 3 && size >= 2 {
 					mapsplit[str[i:j+1]] = true
 				}
-				l++
 			}
-			k++
 		}
 	}
 	mplit := make([]string, len(mapsplit))
@@ -87,7 +86,7 @@ func UpperUnaccentUnpunctRune(r rune) rune {
 	}
 }
 
-func Distance(search, reference string, ignoreCase bool) int {
+func Distance(search, reference string) int {
 	var cost, lastdiag, olddiag int
 	lenSearch := 0
 	for range search {
@@ -106,13 +105,7 @@ func Distance(search, reference string, ignoreCase bool) int {
 			olddiag = column[y]
 			cost = 0
 			if runeSearch != runeRef {
-				if ignoreCase == true {
-					if UpperUnaccentUnpunctRune(runeSearch) != UpperUnaccentUnpunctRune(runeRef) {
-						cost = 2
-					}
-				} else {
-					cost = 2
-				}
+				cost = 2
 			}
 			column[y] = Min(Min(
 				column[y]+1,    // insert on search
@@ -126,22 +119,32 @@ func Distance(search, reference string, ignoreCase bool) int {
 	return column[lenSearch]
 }
 
-func Score(search, reference string) int {
-	if search == "" || reference == "" {
+func QuickScore(searchWords []string, reference string) int {
+	if len(searchWords) == 0 || reference == "" {
 		return 0
 	}
-	searchWords := Split(search)
+	score := 0
+	for _, currentSearchWord := range searchWords {
+		if strings.Contains(reference, currentSearchWord) {
+			score += len(currentSearchWord)
+		}
+	}
+	return score
+}
+
+func Score(searchWords []string, reference string) int {
+	if len(searchWords) == 0 || reference == "" {
+		return 0
+	}
 	referenceWords := Split(reference)
-	var match, topMatch, m, bestIndex, lenCurrentSearchWord, lenTotal, i int
+	var match, topMatch, m, bestIndex, i int
 	var currentSearchWord, currentRefenceWord string
 	lastIndex := -1
 	for _, currentSearchWord = range searchWords {
 		topMatch = 0
 		bestIndex = 0
-		lenCurrentSearchWord = len(currentSearchWord)
-		lenTotal += lenCurrentSearchWord
 		for i, currentRefenceWord = range referenceWords {
-			m = lenCurrentSearchWord - Distance(currentSearchWord, currentRefenceWord, true)
+			m = len(currentSearchWord) + len(currentRefenceWord) - 2*Distance(currentSearchWord, currentRefenceWord)
 			if m > topMatch {
 				topMatch = m
 				bestIndex = i
@@ -159,7 +162,7 @@ func Score(search, reference string) int {
 	if match < 0 {
 		return 0
 	} else {
-		return 100 * match
+		return match
 	}
 }
 
@@ -303,7 +306,7 @@ func Partialphone(source string) string {
 			lastRune = currentRune
 
 		case 'W':
-			currentRune = 'W'
+			currentRune = 'V'
 			PartialphoneWriteLast(b, &currentRune, &lastRune, &penultimateRune)
 			lastRune = currentRune
 
@@ -330,7 +333,7 @@ func Partialphone(source string) string {
 	}
 
 	if lastRune != ' ' && penultimateRune != lastRune {
-		if lastRune != 'A' {
+		if lastRune != 'A' && lastRune != '1' {
 			b.WriteRune(lastRune)
 		}
 	}

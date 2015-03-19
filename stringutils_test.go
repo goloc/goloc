@@ -37,7 +37,12 @@ var levTests = []struct {
 
 func TestDistance(t *testing.T) {
 	for _, tt := range levTests {
-		d := Distance(tt.source, tt.target, tt.ignoreCase)
+		d := 0
+		if tt.ignoreCase {
+			d = Distance(UpperUnaccentUnpunctString(tt.source), UpperUnaccentUnpunctString(tt.target))
+		} else {
+			d = Distance(tt.source, tt.target)
+		}
 		if d != tt.distance {
 			t.Logf("Distance of %v and %v should be %v but was %v.",
 				tt.source, tt.target, tt.distance, d)
@@ -64,7 +69,10 @@ var partialphoneTests = []struct {
 	{"Grand carmeaux", "JRND KRMS"},
 	{"Piscine Immeuble", "PSN AMBL"},
 	{"Straßer STRAẞER", "STRSR STRSR"},
-	{"a23 T34 TER34 3423u 78045R 34567TEERT", "A2 T3 TR3 3A 7R 3TRT"},
+	{"Wagon", "VJN"},
+	{"6", "6"},
+	{"62", "6"},
+	{"6 a23 T34 TER34 3423u 78045R 34567TEERT", "6 A2 T3 TR3 3A 7R 3TRT"},
 	{" ", ""},
 	{"!", ""},
 	{"? !", ""},
@@ -85,16 +93,16 @@ func TestPartialphone(t *testing.T) {
 }
 
 func TestScore(t *testing.T) {
-	score1 := Score("champs elysees paris", "Avenue des Champs-Élysées 75008 Paris France")
-	score2 := Score("paris champs elysees", "Avenue des Champs-Élysées 75008 Paris France")
-	score3 := Score("champs elyse paris", "Avenue des Champs-Élysées 75008 Paris France")
+	score1 := Score(Split(UpperUnaccentUnpunctString("champs elysees paris")), UpperUnaccentUnpunctString("Avenue des Champs-Élysées 75008 Paris France"))
+	score2 := Score(Split(UpperUnaccentUnpunctString("paris champs elysees")), UpperUnaccentUnpunctString("Avenue des Champs-Élysées 75008 Paris France"))
+	score3 := Score(Split(UpperUnaccentUnpunctString("champs elyse paris")), UpperUnaccentUnpunctString("Avenue des Champs-Élysées 75008 Paris France"))
 	if score1 <= score2 || score1 <= score3 {
 		t.Logf("score1=%v score2=%v score3=%v", score1, score2, score3)
 		t.Fail()
 	}
 
-	score4 := Score("eco", "Ecole – Aubers")
-	score5 := Score("eco", "Cite Arbrisseau All C 59176 Écaillon")
+	score4 := Score(Split(UpperUnaccentUnpunctString("eco")), UpperUnaccentUnpunctString("Ecole – Aubers"))
+	score5 := Score(Split(UpperUnaccentUnpunctString("eco")), UpperUnaccentUnpunctString("Cite Arbrisseau All C 59176 Écaillon"))
 	if score4 <= score5 {
 		t.Logf("score4=%v score5=%v", score4, score5)
 		t.Fail()
@@ -102,18 +110,8 @@ func TestScore(t *testing.T) {
 }
 
 func TestMSplit(t *testing.T) {
-	msplit := MSplit("A DU CLAIRE", 1, 6)
-	if len(msplit) != 24 {
-		t.Logf("msplit=%v", msplit)
-		t.Fail()
-	}
-	msplit = MSplit("A DU CLAIRE", 2, 3)
-	if len(msplit) != 10 {
-		t.Logf("msplit=%v", msplit)
-		t.Fail()
-	}
-	msplit = MSplit("A DU CLAIRE", 2, 2)
-	if len(msplit) != 6 {
+	msplit := MSplit("A DU CLAIRE")
+	if len(msplit) != 11 {
 		t.Logf("msplit=%v", msplit)
 		t.Fail()
 	}

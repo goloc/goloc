@@ -6,7 +6,7 @@ package goloc
 import ()
 
 const (
-	defaultTolerance = 1
-	defaultKeyLimit  = 100000
+	defaultTolerance = 3
+	defaultKeyLimit  = 300000
 	defaultLocLimit  = 1000
 )
