@@ -11,19 +11,20 @@ import (
 )
 
 type Memindex struct {
-	locations map[string]Location
-	keys      map[string]container.Container
+	Locations map[string]Location
+	Keys      map[string]container.Container
+	StopWords container.Container
 	internal
 }
 
 func NewMemindex() *Memindex {
 	mi := new(Memindex)
 	mi.tolerance = defaultTolerance
-	mi.keyLimit = defaultKeyLimit
 	mi.locLimit = defaultLocLimit
 	mi.get = mi.Get
 	mi.internal.getIds = mi.getIds
 	mi.internal.addLocationAndKeys = mi.addLocationAndKeys
+	mi.internal.getStopWords = mi.getStopWords
 	mi.Clear()
 	GobRegister()
 	return mi
@@ -31,60 +32,63 @@ func NewMemindex() *Memindex {
 
 func NewMemindexFromFile(filename string) *Memindex {
 	fmt.Printf("load %v\n", filename)
-	mi := NewMemindex()
 	file, err := os.Open(filename)
 	if err != nil {
 		panic(err)
-		return mi
+		return nil
 	}
 	defer file.Close()
 
+	mi := NewMemindex()
 	dataDecoder := gob.NewDecoder(file)
-	dataDecoder.Decode(&mi.keys)
-	dataDecoder.Decode(&mi.locations)
-	fmt.Printf("%v locations\n", mi.SizeLocation())
-	fmt.Printf("%v keys\n", mi.SizeIndex())
+	dataDecoder.Decode(&mi)
+	fmt.Printf("%v Locations\n", mi.SizeLocation())
+	fmt.Printf("%v Keys\n", mi.SizeIndex())
+	fmt.Printf("%v Stop words\n", mi.StopWords.GetSize())
 
 	return mi
 }
 
 func (mi *Memindex) SaveInFile(filename string) {
 	fmt.Printf("save %v\n", filename)
+	fmt.Printf("%v Locations\n", mi.SizeLocation())
+	fmt.Printf("%v Keys\n", mi.SizeIndex())
+	fmt.Printf("%v Stop words\n", mi.StopWords.GetSize())
+
 	file, err := os.Create(filename)
 	if err != nil {
 		panic(err)
 		return
 	}
 	encoder := gob.NewEncoder(file)
-	if err = encoder.Encode(mi.keys); err != nil {
-		panic(err)
-	}
-	if err = encoder.Encode(mi.locations); err != nil {
+	if err = encoder.Encode(mi); err != nil {
 		panic(err)
 	}
 	if err = file.Close(); err != nil {
 		panic(err)
 	}
 }
+
 func (mi *Memindex) Add(loc Location) {
 	mi.add(loc)
 }
 
 func (mi *Memindex) SizeLocation() int {
-	return len(mi.locations)
+	return len(mi.Locations)
 }
 
 func (mi *Memindex) SizeIndex() int {
-	return len(mi.keys)
+	return len(mi.Keys)
 }
 
 func (mi *Memindex) Clear() {
-	mi.locations = make(map[string]Location)
-	mi.keys = make(map[string]container.Container)
+	mi.Locations = make(map[string]Location)
+	mi.Keys = make(map[string]container.Container)
+	mi.StopWords = container.NewLinkedList()
 }
 
 func (mi *Memindex) Get(id string) Location {
-	loc := mi.locations[id]
+	loc := mi.Locations[id]
 	return loc
 }
 
@@ -92,22 +96,32 @@ func (mi *Memindex) Search(search string, number int, filter Filter) container.C
 	return mi.search(search, number, filter)
 }
 
+func (mi *Memindex) AddStopWord(words ...string) {
+	for _, word := range words {
+		mi.StopWords.Add(UpperUnaccentUnpunctString(word))
+	}
+}
+
 func (mi *Memindex) getIds(key string) container.Container {
-	ids := mi.keys[key]
+	ids := mi.Keys[key]
 	return ids
 }
 
-func (mi *Memindex) addLocationAndKeys(loc Location, keys []string) {
+func (mi *Memindex) addLocationAndKeys(loc Location, Keys container.Container) {
 	var ids container.Container
-	var k string
 	id := loc.GetId()
-	mi.locations[id] = loc
-	for _, k = range keys {
-		ids = mi.keys[k]
+	mi.Locations[id] = loc
+	Keys.Visit(func(element interface{}, i int) {
+		key := element.(string)
+		ids = mi.Keys[key]
 		if ids == nil {
 			ids = container.NewLinkedList()
-			mi.keys[k] = ids
+			mi.Keys[key] = ids
 		}
 		ids.Add(id)
-	}
+	})
+}
+
+func (mi *Memindex) getStopWords() container.Container {
+	return mi.StopWords
 }

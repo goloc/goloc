@@ -5,39 +5,52 @@ package goloc
 
 import (
 	"bytes"
+	"github.com/goloc/container"
 	"strings"
 	"unicode"
 )
 
-func Split(source string) []string {
-	return strings.FieldsFunc(source, func(r rune) bool {
+func Split(source string) container.Container {
+	strs := strings.FieldsFunc(source, func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsNumber(r)
 	})
+	list := container.NewLinkedList()
+	for _, str := range strs {
+		list.Add(str)
+	}
+	return list
 }
 
-func MSplit(source string) []string {
-	strs := Split(source)
+func MSplit(source string) container.Container {
 	mapsplit := make(map[string]bool)
-	for _, str := range strs {
-		if len(str) <= 3 {
+	Split(source).Visit(func(element interface{}, i int) {
+		str := element.(string)
+		switch len(str) {
+		case 0:
+
+		case 1:
 			mapsplit[str] = true
-		}
-		for i, _ := range str {
-			for j, _ := range str {
-				size := j - i + 1
-				if size > 0 && size <= 3 && size >= 2 {
-					mapsplit[str[i:j+1]] = true
+		case 2:
+			mapsplit[str] = true
+			mapsplit[str[0:1]] = true
+		default:
+			mapsplit[str[0:1]] = true
+			mapsplit[str[0:2]] = true
+			for i, _ := range str {
+				for j, _ := range str {
+					size := j - i + 1
+					if size > 0 && size <= 3 && size >= 3 {
+						mapsplit[str[i:j+1]] = true
+					}
 				}
 			}
 		}
-	}
-	mplit := make([]string, len(mapsplit))
-	i := 0
+	})
+	list := container.NewLinkedList()
 	for str, _ := range mapsplit {
-		mplit[i] = str
-		i++
+		list.Add(str)
 	}
-	return mplit
+	return list
 }
 
 func UpperUnaccentUnpunctString(str string) string {
@@ -119,37 +132,39 @@ func Distance(search, reference string) int {
 	return column[lenSearch]
 }
 
-func QuickScore(searchWords []string, reference string) int {
-	if len(searchWords) == 0 || reference == "" {
+func QuickScore(searchWords container.Container, reference string) int {
+	if searchWords.GetSize() == 0 || reference == "" {
 		return 0
 	}
 	score := 0
-	for _, currentSearchWord := range searchWords {
+	searchWords.Visit(func(element interface{}, i int) {
+		currentSearchWord := element.(string)
 		if strings.Contains(reference, currentSearchWord) {
 			score += len(currentSearchWord)
 		}
-	}
+	})
 	return score
 }
 
-func Score(searchWords []string, reference string) int {
-	if len(searchWords) == 0 || reference == "" {
+func Score(searchWords container.Container, reference string) int {
+	if searchWords.GetSize() == 0 || reference == "" {
 		return 0
 	}
 	referenceWords := Split(reference)
-	var match, topMatch, m, bestIndex, i int
-	var currentSearchWord, currentRefenceWord string
+	var match, topMatch, m, bestIndex int
 	lastIndex := -1
-	for _, currentSearchWord = range searchWords {
+	searchWords.Visit(func(element interface{}, i int) {
+		currentSearchWord := element.(string)
 		topMatch = 0
 		bestIndex = 0
-		for i, currentRefenceWord = range referenceWords {
+		referenceWords.Visit(func(element interface{}, j int) {
+			currentRefenceWord := element.(string)
 			m = len(currentSearchWord) + len(currentRefenceWord) - 2*Distance(currentSearchWord, currentRefenceWord)
 			if m > topMatch {
 				topMatch = m
-				bestIndex = i
+				bestIndex = j
 			}
-		}
+		})
 		if lastIndex == -1 {
 			lastIndex = bestIndex
 		}
@@ -158,7 +173,7 @@ func Score(searchWords []string, reference string) int {
 			match--
 		}
 		lastIndex = bestIndex
-	}
+	})
 	if match < 0 {
 		return 0
 	} else {

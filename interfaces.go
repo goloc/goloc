@@ -9,11 +9,13 @@ import (
 
 type Index interface {
 	// Add new location
-	Add(loc Location)
+	Add(Location)
 	// Get location
 	Get(string) Location
 	// Search
 	Search(string, int, Filter) container.Container
+	// Add new stop word
+	AddStopWord(...string)
 }
 
 // Location definition.

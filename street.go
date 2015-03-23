@@ -32,15 +32,17 @@ func (s *Street) GetName() string {
 }
 
 func (s *Street) GetNumberedPoint(search string) NumberedPoint {
+	var number NumberedPoint
 	if len(s.NumberedPoints) > 0 {
-		strs := Split(search)
-		for _, str := range strs {
-			if number, ok := s.NumberedPoints[str]; ok == true {
-				return number
+		Split(search).Visit(func(element interface{}, i int) {
+			str := element.(string)
+			n, ok := s.NumberedPoints[str]
+			if number == nil && ok {
+				number = n
 			}
-		}
+		})
 	}
-	return nil
+	return number
 }
 
 func (s *Street) GetType() string {

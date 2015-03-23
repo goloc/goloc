@@ -110,8 +110,8 @@ func TestScore(t *testing.T) {
 }
 
 func TestMSplit(t *testing.T) {
-	msplit := MSplit("A DU CLAIRE")
-	if len(msplit) != 11 {
+	msplit := MSplit("A LN VNS JRND KLMNT")
+	if msplit.GetSize() != 15 {
 		t.Logf("msplit=%v", msplit)
 		t.Fail()
 	}

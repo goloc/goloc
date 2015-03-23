@@ -29,9 +29,13 @@ func CompareScoreResult(r1, r2 interface{}) int {
 	n2 := r2.(*Result).Name
 	if len(n1) > len(n2) {
 		return 1
+	} else if len(n1) < len(n2) {
+		return -1
 	} else {
 		if n1 > n2 {
 			return 1
+		} else if n1 < n2 {
+			return -1
 		} else {
 			if id1 > id2 {
 				return 1

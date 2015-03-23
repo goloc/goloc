@@ -4,16 +4,15 @@
 package goloc
 
 import (
-	"fmt"
 	"reflect"
-	"runtime"
 	"testing"
-	"time"
 )
 
 func TestMemindex(t *testing.T) {
 	memindex := NewMemindex()
 	memindex.tolerance = 0
+	memindex.AddStopWord("D", "DE", "DU", "DES", "L", "LE", "LA", "LES")
+	memindex.AddStopWord("RUE", "ROUTE", "ALLEE", "PLACE", "CHEMIN", "IMPASSE", "AVENUE", "BOULEVARD")
 
 	paris8 := NewZone("Z1")
 	paris8.Postcode = "75008"
@@ -57,12 +56,17 @@ func TestMemindex(t *testing.T) {
 	poi1.Zone = paris12
 	memindex.Add(poi1)
 
-	results := memindex.Search("paris", 10, nil)
+	results := memindex.Search("rue", 10, nil)
+	if results.GetSize() != 0 {
+		t.Fail()
+	}
+
+	results = memindex.Search("paris", 10, nil)
 	if results.GetSize() != 6 {
 		t.Fail()
 	}
 
-	results = memindex.Search("avenue", 10, nil)
+	results = memindex.Search("avenue champs", 10, nil)
 	if results.GetSize() != 1 {
 		t.Fail()
 	}
@@ -104,38 +108,4 @@ func TestMemindex(t *testing.T) {
 	if results.GetSize() != 1 {
 		t.Fail()
 	}
-}
-
-func TestPerfMemindex(t *testing.T) {
-	runtime.GOMAXPROCS(16)
-	memindex := NewMemindex()
-
-	for i := 1; i <= 9; i++ {
-		zone := new(Zone)
-		zone.Id = fmt.Sprintf("Z%v", i)
-		zone.Postcode = fmt.Sprintf("6900%v", i)
-		zone.City = "Lyon"
-		zone.Country = "France"
-		memindex.Add(zone)
-	}
-
-	for i := 1; i < 10000; i++ {
-		for j := 1; j <= 9; j++ {
-			street := NewStreet(fmt.Sprintf("S%v%v", i, j))
-			street.NumberedPoints["8"] = NewStreetNumberedPoint("8")
-			street.NumberedPoints["9"] = NewStreetNumberedPoint("9")
-			street.NumberedPoints["10"] = NewStreetNumberedPoint("10")
-			street.StreetName = fmt.Sprintf("Rue du numéro %v%v", i, j)
-			street.Zone = memindex.Get(fmt.Sprintf("Z%v", j)).(*Zone)
-			memindex.Add(street)
-		}
-	}
-
-	t0 := time.Now()
-	results := memindex.Search("9 rue numero lyon", 10, nil)
-	if results.GetSize() != 10 {
-		t.Fail()
-	}
-	t1 := time.Now()
-	fmt.Printf("The search took %v to run.\n", t1.Sub(t0))
 }
