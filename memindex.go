@@ -22,6 +22,7 @@ func NewMemindex() *Memindex {
 	mi.tolerance = defaultTolerance
 	mi.locLimit = defaultLocLimit
 	mi.get = mi.Get
+	mi.internal.getNbIds = mi.getNbIds
 	mi.internal.getIds = mi.getIds
 	mi.internal.addLocationAndKeys = mi.addLocationAndKeys
 	mi.internal.getStopWords = mi.getStopWords
@@ -99,6 +100,15 @@ func (mi *Memindex) Search(search string, number int, filter Filter) container.C
 func (mi *Memindex) AddStopWord(words ...string) {
 	for _, word := range words {
 		mi.StopWords.Add(UpperUnaccentUnpunctString(word))
+	}
+}
+
+func (mi *Memindex) getNbIds(key string) int {
+	ids := mi.Keys[key]
+	if ids != nil {
+		return ids.GetSize()
+	} else {
+		return 0
 	}
 }
 

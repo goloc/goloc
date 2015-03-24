@@ -4,7 +4,6 @@
 package goloc
 
 import (
-	"fmt"
 	"github.com/goloc/container"
 	"strings"
 	"sync"
@@ -15,6 +14,7 @@ type internal struct {
 	keyLimit           int
 	locLimit           int
 	get                func(string) Location
+	getNbIds           func(string) int
 	getIds             func(string) container.Container
 	addLocationAndKeys func(loc Location, keys container.Container)
 	getStopWords       func() container.Container
@@ -50,59 +50,58 @@ func (inter *internal) search(search string, number int, filter Filter) containe
 	mkeys := MSplit(Partialphone(cleansearch))
 
 	var waitgroup sync.WaitGroup
-	var mutex sync.Mutex
 
-	counter := container.NewCounter()
+	keysCounter := container.NewCounter()
 	mkeys.Visit(func(element interface{}, i int) {
 		waitgroup.Add(1)
 		go func(key string) {
 			defer waitgroup.Done()
-			ids := inter.getIds(key)
-			if ids != nil && ids.GetSize() > 0 {
-				ids.Visit(func(element interface{}, i int) {
-					id := element.(string)
-					counter.Incr(id)
-				})
+			val := inter.getNbIds(key)
+			if val > 0 {
+				keysCounter.Incr(key, val)
 			}
 		}(element.(string))
 	})
 	waitgroup.Wait()
 
 	tmpResults := container.NewLimitedBinaryTree(CompareScoreResult, inter.locLimit, true)
-	minKeyScore := int(counter.GetMax()) - inter.tolerance
-	counter.Visit(func(id string, count uint32, i int) {
-		if int(count) >= minKeyScore {
+	keysCounter.Visit(func(element interface{}, i int) {
+		if i <= inter.tolerance {
 			waitgroup.Add(1)
-			go func(id string) {
+			go func(count *container.Count) {
 				defer waitgroup.Done()
-				loc := inter.get(id)
-				if loc != nil {
-					result := new(Result)
-					result.Id = id
-					result.Search = search
-					result.Name = loc.GetName()
-					result.Lat = loc.GetLat()
-					result.Lon = loc.GetLon()
-					result.Type = loc.GetType()
-					bag, ok := loc.(NumberedPointBag)
-					if ok {
-						numbered := bag.GetNumberedPoint(search)
-						if numbered != nil {
-							result.Number = numbered.GetNumber()
-							result.Lat = numbered.GetLat()
-							result.Lon = numbered.GetLon()
+				ids := inter.getIds(count.Key)
+				if ids != nil && ids.GetSize() > 0 {
+					ids.Visit(func(element interface{}, i int) {
+						id := element.(string)
+						loc := inter.get(id)
+						if loc != nil {
+							result := new(Result)
+							result.Id = id
+							result.Search = search
+							result.Name = loc.GetName()
+							result.Lat = loc.GetLat()
+							result.Lon = loc.GetLon()
+							result.Type = loc.GetType()
+							bag, ok := loc.(NumberedPointBag)
+							if ok {
+								numbered := bag.GetNumberedPoint(search)
+								if numbered != nil {
+									result.Number = numbered.GetNumber()
+									result.Lat = numbered.GetLat()
+									result.Lon = numbered.GetLon()
+								}
+							}
+							if filter(result) {
+								result.Score += QuickScore(mwords, UpperUnaccentUnpunctString(result.Name))
+								if result.Score > 0 {
+									tmpResults.Add(result)
+								}
+							}
 						}
-					}
-					if filter(result) {
-						result.Score += QuickScore(mwords, UpperUnaccentUnpunctString(result.Name))
-						if result.Score > 0 {
-							mutex.Lock()
-							tmpResults.Add(result)
-							mutex.Unlock()
-						}
-					}
+					})
 				}
-			}(id)
+			}(element.(*container.Count))
 		}
 	})
 	waitgroup.Wait()
@@ -114,9 +113,7 @@ func (inter *internal) search(search string, number int, filter Filter) containe
 			defer waitgroup.Done()
 			result.Score += Score(words, UpperUnaccentUnpunctString(result.Name))
 			if result.Score > 0 {
-				mutex.Lock()
 				results.Add(result)
-				mutex.Unlock()
 			}
 		}(element.(*Result))
 	})

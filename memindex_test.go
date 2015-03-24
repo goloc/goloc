@@ -10,7 +10,7 @@ import (
 
 func TestMemindex(t *testing.T) {
 	memindex := NewMemindex()
-	memindex.tolerance = 0
+	memindex.tolerance = 1
 	memindex.AddStopWord("D", "DE", "DU", "DES", "L", "LE", "LA", "LES")
 	memindex.AddStopWord("RUE", "ROUTE", "ALLEE", "PLACE", "CHEMIN", "IMPASSE", "AVENUE", "BOULEVARD")
 
@@ -58,42 +58,54 @@ func TestMemindex(t *testing.T) {
 
 	results := memindex.Search("rue", 10, nil)
 	if results.GetSize() != 0 {
+		t.Logf("Result number should be %v but was %v.", 0,
+			results.GetSize())
 		t.Fail()
 	}
 
 	results = memindex.Search("paris", 10, nil)
 	if results.GetSize() != 6 {
+		t.Logf("Result number should be %v but was %v.", 6,
+			results.GetSize())
 		t.Fail()
 	}
 
 	results = memindex.Search("avenue champs", 10, nil)
 	if results.GetSize() != 1 {
+		t.Logf("Result number should be %v but was %v.", 1,
+			results.GetSize())
 		t.Fail()
 	}
 
 	results = memindex.Search("carpe", 10, nil)
 	if results.GetSize() != 1 {
+		t.Logf("Result number should be %v but was %v.", 1,
+			results.GetSize())
 		t.Fail()
-	}
-	if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
+	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
 		t.Fail()
 	}
 
 	results = memindex.Search("10 carpe", 10, nil)
 	if results.GetSize() != 1 {
+		t.Logf("Result number should be %v but was %v.", 1,
+			results.GetSize())
 		t.Fail()
-	}
-	if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
+	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
 		t.Fail()
 	}
 
 	results = memindex.Search("rue lyon paris", 10, nil)
-	if results.GetSize() != 1 {
+	if results.GetSize() != 2 {
+		t.Logf("Result number should be %v but was %v.", 2,
+			results.GetSize())
 		t.Fail()
 	}
 
 	results = memindex.Search("lyon", 10, nil)
 	if results.GetSize() != 2 {
+		t.Logf("Result number should be %v but was %v.", 2,
+			results.GetSize())
 		t.Fail()
 	}
 
@@ -106,6 +118,8 @@ func TestMemindex(t *testing.T) {
 		}
 	})
 	if results.GetSize() != 1 {
+		t.Logf("Result number should be %v but was %v.", 1,
+			results.GetSize())
 		t.Fail()
 	}
 }
