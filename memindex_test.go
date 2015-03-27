@@ -56,29 +56,41 @@ func TestMemindex(t *testing.T) {
 	poi1.Zone = paris12
 	memindex.Add(poi1)
 
-	results := memindex.Search("rue", 10, nil)
-	if results.GetSize() != 0 {
+	results, err := memindex.Search("rue", 10, nil)
+	if err != nil {
+		t.Logf("%v\n", err)
+		t.Fail()
+	} else if results.GetSize() != 0 {
 		t.Logf("Result number should be %v but was %v.", 0,
 			results.GetSize())
 		t.Fail()
 	}
 
-	results = memindex.Search("paris", 10, nil)
-	if results.GetSize() != 6 {
+	results, err = memindex.Search("paris", 10, nil)
+	if err != nil {
+		t.Logf("%v\n", err)
+		t.Fail()
+	} else if results.GetSize() != 6 {
 		t.Logf("Result number should be %v but was %v.", 6,
 			results.GetSize())
 		t.Fail()
 	}
 
-	results = memindex.Search("avenue champs", 10, nil)
-	if results.GetSize() != 1 {
+	results, err = memindex.Search("avenue champs", 10, nil)
+	if err != nil {
+		t.Logf("%v\n", err)
+		t.Fail()
+	} else if results.GetSize() != 1 {
 		t.Logf("Result number should be %v but was %v.", 1,
 			results.GetSize())
 		t.Fail()
 	}
 
-	results = memindex.Search("carpe", 10, nil)
-	if results.GetSize() != 1 {
+	results, err = memindex.Search("carpe", 10, nil)
+	if err != nil {
+		t.Logf("%v\n", err)
+		t.Fail()
+	} else if results.GetSize() != 1 {
 		t.Logf("Result number should be %v but was %v.", 1,
 			results.GetSize())
 		t.Fail()
@@ -86,8 +98,11 @@ func TestMemindex(t *testing.T) {
 		t.Fail()
 	}
 
-	results = memindex.Search("10 carpe", 10, nil)
-	if results.GetSize() != 1 {
+	results, err = memindex.Search("10 carpe", 10, nil)
+	if err != nil {
+		t.Logf("%v\n", err)
+		t.Fail()
+	} else if results.GetSize() != 1 {
 		t.Logf("Result number should be %v but was %v.", 1,
 			results.GetSize())
 		t.Fail()
@@ -95,29 +110,38 @@ func TestMemindex(t *testing.T) {
 		t.Fail()
 	}
 
-	results = memindex.Search("rue lyon paris", 10, nil)
-	if results.GetSize() != 2 {
+	results, err = memindex.Search("rue lyon paris", 10, nil)
+	if err != nil {
+		t.Logf("%v\n", err)
+		t.Fail()
+	} else if results.GetSize() != 2 {
 		t.Logf("Result number should be %v but was %v.", 2,
 			results.GetSize())
 		t.Fail()
 	}
 
-	results = memindex.Search("lyon", 10, nil)
-	if results.GetSize() != 2 {
+	results, err = memindex.Search("lyon", 10, nil)
+	if err != nil {
+		t.Logf("%v\n", err)
+		t.Fail()
+	} else if results.GetSize() != 2 {
 		t.Logf("Result number should be %v but was %v.", 2,
 			results.GetSize())
 		t.Fail()
 	}
 
 	// Search only poi:Gare
-	results = memindex.Search("lyon", 10, func(result *Result) bool {
+	results, err = memindex.Search("lyon", 10, func(result *Result) bool {
 		if result.Type == "poi:Gare" {
 			return true
 		} else {
 			return false
 		}
 	})
-	if results.GetSize() != 1 {
+	if err != nil {
+		t.Logf("%v\n", err)
+		t.Fail()
+	} else if results.GetSize() != 1 {
 		t.Logf("Result number should be %v but was %v.", 1,
 			results.GetSize())
 		t.Fail()

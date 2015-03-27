@@ -13,7 +13,7 @@ type Index interface {
 	// Get location
 	Get(string) Location
 	// Search
-	Search(string, int, Filter) container.Container
+	Search(string, int, Filter) (container.Container, error)
 	// Add new stop word
 	AddStopWord(...string)
 }

@@ -3,9 +3,13 @@
 // license that can be found in the LICENSE file.
 package goloc
 
-import ()
+import (
+	"time"
+)
 
 const (
-	defaultTolerance = 1
-	defaultLocLimit  = 200
+	defaultTolerance        = 1
+	defaultLocLimit         = 200
+	defaultMaxWaitAcquire   = 1 * time.Second
+	defaultMaxWaitTraitment = 3 * time.Second
 )

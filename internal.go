@@ -10,9 +10,6 @@ import (
 )
 
 type internal struct {
-	tolerance          int
-	keyLimit           int
-	locLimit           int
 	get                func(string) Location
 	getNbIds           func(string) int
 	getIds             func(string) container.Container
@@ -32,7 +29,7 @@ func (inter *internal) add(loc Location) {
 	inter.addLocationAndKeys(loc, mkeys)
 }
 
-func (inter *internal) search(search string, number int, filter Filter) container.Container {
+func (inter *internal) search(search string, number, tolerance, locLimit int, filter Filter) container.Container {
 	if filter == nil {
 		filter = DefaultFilter
 	}
@@ -64,9 +61,9 @@ func (inter *internal) search(search string, number int, filter Filter) containe
 	})
 	waitgroup.Wait()
 
-	tmpResults := container.NewLimitedBinaryTree(CompareScoreResult, inter.locLimit, true)
+	tmpResults := container.NewLimitedBinaryTree(CompareScoreResult, locLimit, true)
 	keysCounter.Visit(func(element interface{}, i int) {
-		if i <= inter.tolerance {
+		if i <= tolerance {
 			waitgroup.Add(1)
 			go func(count *container.Count) {
 				defer waitgroup.Done()
