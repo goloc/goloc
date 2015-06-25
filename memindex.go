@@ -6,37 +6,23 @@ package goloc
 import (
 	"encoding/gob"
 	"fmt"
-	"github.com/goloc/concurrency"
-	"github.com/goloc/container"
 	"os"
 	"runtime"
-	"time"
+	"strings"
+
+	"github.com/goloc/container"
 )
 
 type Memindex struct {
-	Locations        map[string]Location
-	Keys             map[string]container.Container
-	StopWords        container.Container
-	tolerance        int
-	locLimit         int
-	maxWaitAcquire   time.Duration
-	maxWaitTraitment time.Duration
-	semaphore        *concurrency.Semaphore
-	internal
+	sniffer   Sniffer
+	Locations map[string]Location
+	Keys      map[string]container.Container
+	StopWords container.Container
 }
 
 func NewMemindex() *Memindex {
 	mi := new(Memindex)
-	mi.tolerance = defaultTolerance
-	mi.locLimit = defaultLocLimit
-	mi.maxWaitAcquire = defaultMaxWaitAcquire
-	mi.maxWaitTraitment = defaultMaxWaitTraitment
-	mi.get = mi.Get
-	mi.semaphore = concurrency.NewSemaphore(runtime.NumCPU())
-	mi.internal.getNbIds = mi.getNbIds
-	mi.internal.getIds = mi.getIds
-	mi.internal.addLocationAndKeys = mi.addLocationAndKeys
-	mi.internal.getStopWords = mi.getStopWords
+	mi.sniffer = NewConcurrentSniffer(mi)
 	mi.Clear()
 	GobRegister()
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -52,20 +38,28 @@ func NewMemindexFromFile(filename string) *Memindex {
 	}
 	defer file.Close()
 
-	mi := NewMemindex()
+	mi := new(Memindex)
+	mi.Clear()
+	GobRegister()
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	dataDecoder := gob.NewDecoder(file)
 	dataDecoder.Decode(&mi)
-	fmt.Printf("%v Locations\n", mi.SizeLocation())
-	fmt.Printf("%v Keys\n", mi.SizeIndex())
+	mi.sniffer = NewConcurrentSniffer(mi)
+	fmt.Printf("%v Locations\n", len(mi.Locations))
+	fmt.Printf("%v Keys\n", len(mi.Keys))
 	fmt.Printf("%v Stop words\n", mi.StopWords.GetSize())
 
 	return mi
 }
 
+func (mi *Memindex) Search(parameters Parameters) (container.Container, error) {
+	return mi.sniffer.Search(parameters)
+}
+
 func (mi *Memindex) SaveInFile(filename string) {
 	fmt.Printf("save %v\n", filename)
-	fmt.Printf("%v Locations\n", mi.SizeLocation())
-	fmt.Printf("%v Keys\n", mi.SizeIndex())
+	fmt.Printf("%v Locations\n", len(mi.Locations))
+	fmt.Printf("%v Keys\n", len(mi.Keys))
 	fmt.Printf("%v Stop words\n", mi.StopWords.GetSize())
 
 	file, err := os.Create(filename)
@@ -83,15 +77,25 @@ func (mi *Memindex) SaveInFile(filename string) {
 }
 
 func (mi *Memindex) Add(loc Location) {
-	mi.add(loc)
-}
-
-func (mi *Memindex) SizeLocation() int {
-	return len(mi.Locations)
-}
-
-func (mi *Memindex) SizeIndex() int {
-	return len(mi.Keys)
+	name := " " + UpperUnaccentUnpunctString(loc.GetName()) + " "
+	if mi.StopWords != nil {
+		mi.StopWords.Visit(func(element interface{}, i int) {
+			word := " " + element.(string) + " "
+			name = strings.Join(strings.Split(name, word), " ")
+		})
+	}
+	mkeys := MSplit(Partialphone(name))
+	id := loc.GetId()
+	mi.Locations[id] = loc
+	mkeys.Visit(func(element interface{}, i int) {
+		key := element.(string)
+		ids := mi.Keys[key]
+		if ids == nil {
+			ids = container.NewLinkedList()
+			mi.Keys[key] = ids
+		}
+		ids.Add(id)
+	})
 }
 
 func (mi *Memindex) Clear() {
@@ -105,38 +109,7 @@ func (mi *Memindex) Get(id string) Location {
 	return loc
 }
 
-func (mi *Memindex) Search(search string, number int, filter Filter) (container.Container, error) {
-	if err := mi.semaphore.Acquire(mi.maxWaitAcquire); err != nil {
-		return nil, err
-	}
-	defer mi.semaphore.Release()
-	promise := mi.searchPromise(search, number, filter)
-	element, err := promise.Wait(mi.maxWaitTraitment)
-	if element != nil {
-		return element.(container.Container), err
-	} else {
-		return nil, err
-	}
-}
-
-func (mi *Memindex) searchPromise(search string, number int, filter Filter) *concurrency.Promise {
-	future := concurrency.NewFuture()
-
-	go func() {
-		res := mi.search(search, number, mi.tolerance, mi.locLimit, filter)
-		future.Resolve(res)
-	}()
-
-	return future.GetPromise()
-}
-
-func (mi *Memindex) AddStopWord(words ...string) {
-	for _, word := range words {
-		mi.StopWords.Add(UpperUnaccentUnpunctString(word))
-	}
-}
-
-func (mi *Memindex) getNbIds(key string) int {
+func (mi *Memindex) GetNbIds(key string) int {
 	ids := mi.Keys[key]
 	if ids != nil {
 		return ids.GetSize()
@@ -145,26 +118,17 @@ func (mi *Memindex) getNbIds(key string) int {
 	}
 }
 
-func (mi *Memindex) getIds(key string) container.Container {
+func (mi *Memindex) GetIds(key string) container.Container {
 	ids := mi.Keys[key]
 	return ids
 }
 
-func (mi *Memindex) addLocationAndKeys(loc Location, Keys container.Container) {
-	var ids container.Container
-	id := loc.GetId()
-	mi.Locations[id] = loc
-	Keys.Visit(func(element interface{}, i int) {
-		key := element.(string)
-		ids = mi.Keys[key]
-		if ids == nil {
-			ids = container.NewLinkedList()
-			mi.Keys[key] = ids
-		}
-		ids.Add(id)
-	})
+func (mi *Memindex) AddStopWord(words ...string) {
+	for _, word := range words {
+		mi.StopWords.Add(UpperUnaccentUnpunctString(word))
+	}
 }
 
-func (mi *Memindex) getStopWords() container.Container {
+func (mi *Memindex) GetStopWords() container.Container {
 	return mi.StopWords
 }

@@ -3,19 +3,32 @@
 // license that can be found in the LICENSE file.
 package goloc
 
-import (
-	"github.com/goloc/container"
-)
+import "github.com/goloc/container"
+
+type Parameters interface {
+	Get(string) interface{}
+	Set(string, interface{})
+}
+
+type Sniffer interface {
+	// Search
+	Search(Parameters) (container.Container, error)
+}
 
 type Index interface {
+	Sniffer
 	// Add new location
 	Add(Location)
 	// Get location
 	Get(string) Location
-	// Search
-	Search(string, int, Filter) (container.Container, error)
+	// Get ids number for key
+	GetNbIds(string) int
+	// // Get ids for key
+	GetIds(string) container.Container
 	// Add new stop word
 	AddStopWord(...string)
+	// Get stop words
+	GetStopWords() container.Container
 }
 
 // Location definition.

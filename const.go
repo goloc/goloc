@@ -8,8 +8,9 @@ import (
 )
 
 const (
+	defaultLimit            = 10
 	defaultTolerance        = 1
-	defaultLocLimit         = 200
+	defaultWorkLimit        = 200
 	defaultMaxWaitAcquire   = 1 * time.Second
 	defaultMaxWaitTraitment = 3 * time.Second
 )

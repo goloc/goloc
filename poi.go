@@ -3,9 +3,7 @@
 // license that can be found in the LICENSE file.
 package goloc
 
-import (
-	"bytes"
-)
+import "bytes"
 
 type Poi struct {
 	Id      string
@@ -24,6 +22,10 @@ func (p *Poi) GetName() string {
 	if len(p.PoiName) > 0 {
 		b.WriteString(p.PoiName)
 	}
+	if p.Zone != nil {
+		b.WriteRune(' ')
+		b.WriteString(p.Zone.GetName())
+	}
 	return b.String()
 }
 
@@ -39,8 +41,13 @@ func (p *Poi) GetLon() float32 {
 	return p.Lon
 }
 
-func NewPoi(id string) *Poi {
+func NewPoi(id string, poiName string, poiType string, zone *Zone, lat float32, lon float32) *Poi {
 	p := new(Poi)
 	p.Id = id
+	p.PoiName = poiName
+	p.PoiType = poiType
+	p.Zone = zone
+	p.Lat = lat
+	p.Lon = lon
 	return p
 }

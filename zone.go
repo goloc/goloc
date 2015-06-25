@@ -3,9 +3,7 @@
 // license that can be found in the LICENSE file.
 package goloc
 
-import (
-	"bytes"
-)
+import "bytes"
 
 type Zone struct {
 	Id         string
@@ -14,8 +12,7 @@ type Zone struct {
 	City       string
 	Region     string
 	Country    string
-	PointMin   Point
-	PointMax   Point
+	Bound
 }
 
 func (z *Zone) GetId() string {
@@ -69,8 +66,17 @@ func (z *Zone) GetLon() float32 {
 	return (z.PointMin.Lon + z.PointMax.Lon) / 2
 }
 
-func NewZone(id string) *Zone {
+func NewZone(id string, postcode string, settlement string, city string, region string, country string, latMin float32, lonMin float32, latMax float32, lonMax float32) *Zone {
 	z := new(Zone)
 	z.Id = id
+	z.Postcode = postcode
+	z.Settlement = settlement
+	z.City = city
+	z.Region = region
+	z.Country = country
+	z.PointMin.Lat = latMin
+	z.PointMin.Lon = lonMin
+	z.PointMax.Lat = latMax
+	z.PointMax.Lon = lonMax
 	return z
 }

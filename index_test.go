@@ -10,53 +10,38 @@ import (
 
 func TestMemindex(t *testing.T) {
 	memindex := NewMemindex()
-	memindex.tolerance = 1
-	memindex.AddStopWord("D", "DE", "DU", "DES", "L", "LE", "LA", "LES")
-	memindex.AddStopWord("RUE", "ROUTE", "ALLEE", "PLACE", "CHEMIN", "IMPASSE", "AVENUE", "BOULEVARD")
+	indexTest(memindex, t)
+}
 
-	paris8 := NewZone("Z1")
-	paris8.Postcode = "75008"
-	paris8.City = "Paris"
-	paris8.Country = "France"
-	memindex.Add(paris8)
+func indexTest(index Index, t *testing.T) {
+	index.AddStopWord("D", "DE", "DU", "DES", "L", "LE", "LA", "LES")
+	index.AddStopWord("RUE", "ROUTE", "ALLEE", "PLACE", "CHEMIN", "IMPASSE", "AVENUE", "BOULEVARD")
 
-	street1 := NewStreet("S1")
-	street1.StreetName = "Avenue des Champs-Élysées"
-	street1.Zone = paris8
-	memindex.Add(street1)
+	paris8 := NewZone("Z1", "75008", "", "Paris", "", "France", 0, 0, 0, 0)
+	index.Add(paris8)
 
-	paris18 := NewZone("Z2")
-	paris18.Postcode = "75018"
-	paris18.City = "Paris"
-	paris18.Country = "France"
-	memindex.Add(paris18)
+	street1 := NewStreet("S1", "Avenue des Champs-Élysées", paris8, 0, 0)
+	index.Add(street1)
 
-	street2 := NewStreet("S2")
-	street2.StreetName = "Rue du Square Carpeaux"
-	street2.Zone = paris18
-	street2.NumberedPoints["8"] = NewStreetNumberedPoint("8")
-	street2.NumberedPoints["9"] = NewStreetNumberedPoint("9")
-	street2.NumberedPoints["10"] = NewStreetNumberedPoint("10")
-	memindex.Add(street2)
+	paris18 := NewZone("Z2", "75018", "", "Paris", "", "France", 0, 0, 0, 0)
+	index.Add(paris18)
 
-	paris12 := NewZone("Z3")
-	paris12.Postcode = "75012"
-	paris12.City = "Paris"
-	paris12.Country = "France"
-	memindex.Add(paris12)
+	street2 := NewStreet("S2", "Rue du Square Carpeaux", paris18, 0, 0)
+	street2.AddNumberedPoint(NewStreetNumberedPoint("8", 0, 0))
+	street2.AddNumberedPoint(NewStreetNumberedPoint("9", 0, 0))
+	street2.AddNumberedPoint(NewStreetNumberedPoint("10", 0, 0))
+	index.Add(street2)
 
-	street3 := NewStreet("S3")
-	street3.StreetName = "Rue de Lyon"
-	street3.Zone = paris12
-	memindex.Add(street3)
+	paris12 := NewZone("Z3", "75012", "", "Paris", "", "France", 0, 0, 0, 0)
+	index.Add(paris12)
 
-	poi1 := NewPoi("P1")
-	poi1.PoiName = "Gare de Lyon"
-	poi1.PoiType = "Gare"
-	poi1.Zone = paris12
-	memindex.Add(poi1)
+	street3 := NewStreet("S3", "Rue de Lyon", paris12, 0, 0)
+	index.Add(street3)
 
-	results, err := memindex.Search("rue", 10, nil)
+	poi1 := NewPoi("P1", "Gare de Lyon", "Gare", paris12, 0, 0)
+	index.Add(poi1)
+
+	results, err := index.Search(NewMapParameters(KeyValue{Key: "search", Value: "rue"}))
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
@@ -66,27 +51,17 @@ func TestMemindex(t *testing.T) {
 		t.Fail()
 	}
 
-	results, err = memindex.Search("paris", 10, nil)
+	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "paris"}))
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
-	} else if results.GetSize() != 6 {
-		t.Logf("Result number should be %v but was %v.", 6,
+	} else if results.GetSize() != 7 {
+		t.Logf("Result number should be %v but was %v.", 7,
 			results.GetSize())
 		t.Fail()
 	}
 
-	results, err = memindex.Search("avenue champs", 10, nil)
-	if err != nil {
-		t.Logf("%v\n", err)
-		t.Fail()
-	} else if results.GetSize() != 1 {
-		t.Logf("Result number should be %v but was %v.", 1,
-			results.GetSize())
-		t.Fail()
-	}
-
-	results, err = memindex.Search("carpe", 10, nil)
+	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "avenue champs"}))
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
@@ -94,11 +69,9 @@ func TestMemindex(t *testing.T) {
 		t.Logf("Result number should be %v but was %v.", 1,
 			results.GetSize())
 		t.Fail()
-	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
-		t.Fail()
 	}
 
-	results, err = memindex.Search("10 carpe", 10, nil)
+	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "carpe"}))
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
@@ -110,7 +83,19 @@ func TestMemindex(t *testing.T) {
 		t.Fail()
 	}
 
-	results, err = memindex.Search("rue lyon paris", 10, nil)
+	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "10 carpe"}))
+	if err != nil {
+		t.Logf("%v\n", err)
+		t.Fail()
+	} else if results.GetSize() != 1 {
+		t.Logf("Result number should be %v but was %v.", 1,
+			results.GetSize())
+		t.Fail()
+	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
+		t.Fail()
+	}
+
+	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "rue lyon paris"}))
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
@@ -120,7 +105,7 @@ func TestMemindex(t *testing.T) {
 		t.Fail()
 	}
 
-	results, err = memindex.Search("lyon", 10, nil)
+	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "lyon"}))
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
@@ -131,13 +116,12 @@ func TestMemindex(t *testing.T) {
 	}
 
 	// Search only poi:Gare
-	results, err = memindex.Search("lyon", 10, func(result *Result) bool {
+	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "lyon"}, KeyValue{Key: "filter", Value: func(result *Result) bool {
 		if result.Type == "poi:Gare" {
 			return true
-		} else {
-			return false
 		}
-	})
+		return false
+	}}))
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()

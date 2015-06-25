@@ -5,9 +5,10 @@ package goloc
 
 import (
 	"bytes"
-	"github.com/goloc/container"
 	"strings"
 	"unicode"
+
+	"github.com/goloc/container"
 )
 
 func Split(source string) container.Container {

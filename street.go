@@ -3,9 +3,7 @@
 // license that can be found in the LICENSE file.
 package goloc
 
-import (
-	"bytes"
-)
+import "bytes"
 
 type Street struct {
 	Id         string
@@ -29,6 +27,10 @@ func (s *Street) GetName() string {
 		b.WriteString(s.Zone.GetName())
 	}
 	return b.String()
+}
+
+func (s *Street) AddNumberedPoint(numberedPoint *StreetNumberedPoint) {
+	s.NumberedPoints[numberedPoint.Number] = numberedPoint
 }
 
 func (s *Street) GetNumberedPoint(search string) NumberedPoint {
@@ -57,10 +59,14 @@ func (s *Street) GetLon() float32 {
 	return s.Lon
 }
 
-func NewStreet(id string) *Street {
+func NewStreet(id string, streetName string, zone *Zone, lat float32, lon float32) *Street {
 	s := new(Street)
 	s.NumberedPoints = make(map[string]*StreetNumberedPoint)
 	s.Id = id
+	s.StreetName = streetName
+	s.Zone = zone
+	s.Lat = lat
+	s.Lon = lon
 	return s
 }
 
@@ -81,8 +87,10 @@ func (np *StreetNumberedPoint) GetLon() float32 {
 	return np.Lon
 }
 
-func NewStreetNumberedPoint(number string) *StreetNumberedPoint {
+func NewStreetNumberedPoint(number string, lat float32, lon float32) *StreetNumberedPoint {
 	np := new(StreetNumberedPoint)
 	np.Number = number
+	np.Lat = lat
+	np.Lon = lon
 	return np
 }

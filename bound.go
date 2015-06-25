@@ -3,12 +3,12 @@
 // license that can be found in the LICENSE file.
 package goloc
 
-type Point struct {
-	Lat float32
-	Lon float32
+type Bound struct {
+	PointMin Point
+	PointMax Point
 }
 
-func NewPoint() *Point {
-	p := new(Point)
-	return p
+func NewBound() *Bound {
+	b := new(Bound)
+	return b
 }
