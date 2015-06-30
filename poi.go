@@ -6,15 +6,24 @@ package goloc
 import "bytes"
 
 type Poi struct {
-	Id      string
-	PoiName string
-	PoiType string
-	Zone    *Zone
+	Id          string
+	EncodedName string
+	PoiName     string
+	PoiType     string
+	Zone        *Zone
 	Point
 }
 
 func (p *Poi) GetId() string {
 	return p.Id
+}
+
+func (p *Poi) GetEncodedName() string {
+	return p.EncodedName
+}
+
+func (p *Poi) SetEncodedName(encodedName string) {
+	p.EncodedName = encodedName
 }
 
 func (p *Poi) GetName() string {

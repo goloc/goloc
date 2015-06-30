@@ -133,20 +133,6 @@ func Distance(search, reference string) int {
 	return column[lenSearch]
 }
 
-func QuickScore(searchWords container.Container, reference string) int {
-	if searchWords.GetSize() == 0 || reference == "" {
-		return 0
-	}
-	score := 0
-	searchWords.Visit(func(element interface{}, i int) {
-		currentSearchWord := element.(string)
-		if strings.Contains(reference, currentSearchWord) {
-			score += len(currentSearchWord)
-		}
-	})
-	return score
-}
-
 func Score(searchWords container.Container, reference string) int {
 	if searchWords.GetSize() == 0 || reference == "" {
 		return 0

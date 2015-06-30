@@ -3,18 +3,31 @@
 // license that can be found in the LICENSE file.
 package goloc
 
-import "bytes"
+import (
+	"bytes"
+
+	"github.com/goloc/container"
+)
 
 type Street struct {
-	Id         string
-	StreetName string
-	Zone       *Zone
+	Id          string
+	EncodedName string
+	StreetName  string
+	Zone        *Zone
 	Point
-	NumberedPoints map[string]*StreetNumberedPoint
+	NumberedPoints *container.LinkedList
 }
 
 func (s *Street) GetId() string {
 	return s.Id
+}
+
+func (s *Street) GetEncodedName() string {
+	return s.EncodedName
+}
+
+func (s *Street) SetEncodedName(encodedName string) {
+	s.EncodedName = encodedName
 }
 
 func (s *Street) GetName() string {
@@ -30,21 +43,11 @@ func (s *Street) GetName() string {
 }
 
 func (s *Street) AddNumberedPoint(numberedPoint *StreetNumberedPoint) {
-	s.NumberedPoints[numberedPoint.Number] = numberedPoint
+	s.NumberedPoints.Add(numberedPoint)
 }
 
-func (s *Street) GetNumberedPoint(search string) NumberedPoint {
-	var number NumberedPoint
-	if len(s.NumberedPoints) > 0 {
-		Split(search).Visit(func(element interface{}, i int) {
-			str := element.(string)
-			n, ok := s.NumberedPoints[str]
-			if number == nil && ok {
-				number = n
-			}
-		})
-	}
-	return number
+func (s *Street) GetNumberedPoints() container.Container {
+	return s.NumberedPoints
 }
 
 func (s *Street) GetType() string {
@@ -61,7 +64,7 @@ func (s *Street) GetLon() float32 {
 
 func NewStreet(id string, streetName string, zone *Zone, lat float32, lon float32) *Street {
 	s := new(Street)
-	s.NumberedPoints = make(map[string]*StreetNumberedPoint)
+	s.NumberedPoints = container.NewLinkedList()
 	s.Id = id
 	s.StreetName = streetName
 	s.Zone = zone

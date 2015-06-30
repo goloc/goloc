@@ -17,8 +17,8 @@ type Sniffer interface {
 
 type Index interface {
 	Sniffer
-	// Add new location
-	Add(Location)
+	// Add new locations
+	Add(...Location)
 	// Get location
 	Get(string) Location
 	// Get ids number for key
@@ -35,6 +35,10 @@ type Index interface {
 type Location interface {
 	// Unique identifier.
 	GetId() string
+	// Phonetic encoded name
+	GetEncodedName() string
+	// Phonetic encoded name
+	SetEncodedName(string)
 	// Name to indexing it.
 	GetName() string
 	// Type (street, poi, zone...).
@@ -47,8 +51,8 @@ type Location interface {
 
 // Numbered definition.
 type NumberedPointBag interface {
-	// Get number for search input parameter
-	GetNumberedPoint(string) NumberedPoint
+	// Get number points
+	GetNumberedPoints() container.Container
 }
 
 // Numbered point definition.

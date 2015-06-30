@@ -16,8 +16,8 @@ import (
 type Memindex struct {
 	sniffer   Sniffer
 	Locations map[string]Location
-	Keys      map[string]container.Container
-	StopWords container.Container
+	Keys      map[string]*container.LinkedList
+	StopWords *container.LinkedList
 }
 
 func NewMemindex() *Memindex {
@@ -76,7 +76,13 @@ func (mi *Memindex) SaveInFile(filename string) {
 	}
 }
 
-func (mi *Memindex) Add(loc Location) {
+func (mi *Memindex) Add(locs ...Location) {
+	for _, loc := range locs {
+		mi.addOne(loc)
+	}
+}
+
+func (mi *Memindex) addOne(loc Location) {
 	name := " " + UpperUnaccentUnpunctString(loc.GetName()) + " "
 	if mi.StopWords != nil {
 		mi.StopWords.Visit(func(element interface{}, i int) {
@@ -84,7 +90,9 @@ func (mi *Memindex) Add(loc Location) {
 			name = strings.Join(strings.Split(name, word), " ")
 		})
 	}
-	mkeys := MSplit(Partialphone(name))
+	encodedName := Partialphone(name)
+	loc.SetEncodedName(encodedName)
+	mkeys := MSplit(encodedName)
 	id := loc.GetId()
 	mi.Locations[id] = loc
 	mkeys.Visit(func(element interface{}, i int) {
@@ -100,7 +108,7 @@ func (mi *Memindex) Add(loc Location) {
 
 func (mi *Memindex) Clear() {
 	mi.Locations = make(map[string]Location)
-	mi.Keys = make(map[string]container.Container)
+	mi.Keys = make(map[string]*container.LinkedList)
 	mi.StopWords = container.NewLinkedList()
 }
 

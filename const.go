@@ -13,4 +13,10 @@ const (
 	defaultWorkLimit        = 200
 	defaultMaxWaitAcquire   = 1 * time.Second
 	defaultMaxWaitTraitment = 3 * time.Second
+
+	// min/max value for int /unit
+	maxUint = ^uint(0)
+	minUint = 0
+	maxInt  = int(maxUint >> 1)
+	minInt  = -maxInt - 1
 )

@@ -72,7 +72,7 @@ func (s *ConcurrentSniffer) searchPromise(parameters Parameters) *concurrency.Pr
 		if s.index.GetStopWords() != nil {
 			s.index.GetStopWords().Visit(func(element interface{}, i int) {
 				word := " " + element.(string) + " "
-				cleansearch = strings.Join(strings.Split(cleansearch, word), " ")
+				cleansearch = " " + strings.Join(strings.Split(cleansearch, word), " ") + " "
 			})
 		}
 		parameters.Set("cleansearch", cleansearch)
@@ -87,9 +87,13 @@ func (s *ConcurrentSniffer) searchPromise(parameters Parameters) *concurrency.Pr
 func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Container {
 	search := parameters.Get("search").(string)
 	cleansearch := parameters.Get("cleansearch").(string)
+	filter := parameters.Get("filter").(func(*Result) bool)
+	tolerance := parameters.Get("tolerance").(int)
+
+	encodedSearch := Partialphone(search)
+	keys := Split(encodedSearch)
+	mkeys := MSplit(encodedSearch)
 	words := Split(cleansearch)
-	mwords := MSplit(cleansearch)
-	mkeys := MSplit(Partialphone(cleansearch))
 
 	var waitgroup sync.WaitGroup
 
@@ -106,11 +110,9 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 	})
 	waitgroup.Wait()
 
-	filter := parameters.Get("filter").(func(*Result) bool)
-
 	tmpResults := container.NewLimitedBinaryTree(CompareScoreResult, parameters.Get("workLimit").(int), true)
 	keysCounter.Visit(func(element interface{}, i int) {
-		if i <= parameters.Get("tolerance").(int) {
+		if i <= tolerance {
 			waitgroup.Add(1)
 			go func(count *container.Count) {
 				defer waitgroup.Done()
@@ -127,17 +129,8 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 							result.Lat = loc.GetLat()
 							result.Lon = loc.GetLon()
 							result.Type = loc.GetType()
-							bag, ok := loc.(NumberedPointBag)
-							if ok {
-								numbered := bag.GetNumberedPoint(cleansearch)
-								if numbered != nil {
-									result.Number = numbered.GetNumber()
-									result.Lat = numbered.GetLat()
-									result.Lon = numbered.GetLon()
-								}
-							}
 							if filter(result) {
-								result.Score += QuickScore(mwords, UpperUnaccentUnpunctString(result.Name))
+								result.Score += Score(keys, loc.GetEncodedName())
 								if result.Score > 0 {
 									tmpResults.Add(result)
 								}
@@ -158,6 +151,30 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 			result.Score += Score(words, UpperUnaccentUnpunctString(result.Name))
 			if result.Score > 0 {
 				results.Add(result)
+			}
+		}(element.(*Result))
+	})
+	waitgroup.Wait()
+
+	results.Visit(func(element interface{}, i int) {
+		waitgroup.Add(1)
+		go func(result *Result) {
+			defer waitgroup.Done()
+			loc := s.index.Get(result.Id)
+			bag, ok := loc.(NumberedPointBag)
+			if ok {
+				minPos := maxInt
+				bag.GetNumberedPoints().Visit(func(element interface{}, i int) {
+					numbered := element.(NumberedPoint)
+					num := UpperUnaccentUnpunctString(numbered.GetNumber())
+					idx := strings.Index(cleansearch, " "+num+" ")
+					if idx >= 0 && i < minPos {
+						minPos = idx
+						result.Number = numbered.GetNumber()
+						result.Lat = numbered.GetLat()
+						result.Lon = numbered.GetLon()
+					}
+				})
 			}
 		}(element.(*Result))
 	})

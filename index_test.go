@@ -81,6 +81,8 @@ func indexTest(index Index, t *testing.T) {
 		t.Fail()
 	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
 		t.Fail()
+	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Number != "" {
+		t.Fail()
 	}
 
 	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "10 carpe"}))
@@ -92,6 +94,8 @@ func indexTest(index Index, t *testing.T) {
 			results.GetSize())
 		t.Fail()
 	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
+		t.Fail()
+	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Number != "10" {
 		t.Fail()
 	}
 

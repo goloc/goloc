@@ -6,17 +6,26 @@ package goloc
 import "bytes"
 
 type Zone struct {
-	Id         string
-	Postcode   string
-	Settlement string
-	City       string
-	Region     string
-	Country    string
+	Id          string
+	EncodedName string
+	Postcode    string
+	Settlement  string
+	City        string
+	Region      string
+	Country     string
 	Bound
 }
 
 func (z *Zone) GetId() string {
 	return z.Id
+}
+
+func (z *Zone) GetEncodedName() string {
+	return z.EncodedName
+}
+
+func (z *Zone) SetEncodedName(encodedName string) {
+	z.EncodedName = encodedName
 }
 
 func (z *Zone) GetName() string {
