@@ -15,7 +15,7 @@ func TestMemindex(t *testing.T) {
 
 func indexTest(index Index, t *testing.T) {
 	index.AddStopWord("D", "DE", "DU", "DES", "L", "LE", "LA", "LES")
-	index.AddStopWord("RUE", "ROUTE", "ALLEE", "PLACE", "CHEMIN", "IMPASSE", "AVENUE", "BOULEVARD")
+	index.AddStopWord("RUE", "R", "ROUTE", "RTE", "ALLEE", "AL", "PLACE", "PL", "CHEMIN", "CHE", "IMPASSE", "IMP", "AVENUE", "AV", "BOULEVARD", "BVD", "BD")
 
 	paris8 := NewZone("Z1", "75008", "", "Paris", "", "France", 0, 0, 0, 0)
 	index.Add(paris8)
@@ -45,9 +45,9 @@ func indexTest(index Index, t *testing.T) {
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
-	} else if results.GetSize() != 0 {
+	} else if results.Size() != 0 {
 		t.Logf("Result number should be %v but was %v.", 0,
-			results.GetSize())
+			results.Size())
 		t.Fail()
 	}
 
@@ -55,9 +55,9 @@ func indexTest(index Index, t *testing.T) {
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
-	} else if results.GetSize() != 7 {
+	} else if results.Size() != 7 {
 		t.Logf("Result number should be %v but was %v.", 7,
-			results.GetSize())
+			results.Size())
 		t.Fail()
 	}
 
@@ -65,9 +65,9 @@ func indexTest(index Index, t *testing.T) {
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
-	} else if results.GetSize() != 1 {
+	} else if results.Size() != 1 {
 		t.Logf("Result number should be %v but was %v.", 1,
-			results.GetSize())
+			results.Size())
 		t.Fail()
 	}
 
@@ -75,9 +75,9 @@ func indexTest(index Index, t *testing.T) {
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
-	} else if results.GetSize() != 1 {
+	} else if results.Size() != 1 {
 		t.Logf("Result number should be %v but was %v.", 1,
-			results.GetSize())
+			results.Size())
 		t.Fail()
 	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
 		t.Fail()
@@ -89,9 +89,9 @@ func indexTest(index Index, t *testing.T) {
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
-	} else if results.GetSize() != 1 {
+	} else if results.Size() != 1 {
 		t.Logf("Result number should be %v but was %v.", 1,
-			results.GetSize())
+			results.Size())
 		t.Fail()
 	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
 		t.Fail()
@@ -103,9 +103,9 @@ func indexTest(index Index, t *testing.T) {
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
-	} else if results.GetSize() != 2 {
+	} else if results.Size() != 2 {
 		t.Logf("Result number should be %v but was %v.", 2,
-			results.GetSize())
+			results.Size())
 		t.Fail()
 	}
 
@@ -113,9 +113,9 @@ func indexTest(index Index, t *testing.T) {
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
-	} else if results.GetSize() != 2 {
+	} else if results.Size() != 2 {
 		t.Logf("Result number should be %v but was %v.", 2,
-			results.GetSize())
+			results.Size())
 		t.Fail()
 	}
 
@@ -129,9 +129,9 @@ func indexTest(index Index, t *testing.T) {
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
-	} else if results.GetSize() != 1 {
+	} else if results.Size() != 1 {
 		t.Logf("Result number should be %v but was %v.", 1,
-			results.GetSize())
+			results.Size())
 		t.Fail()
 	}
 }

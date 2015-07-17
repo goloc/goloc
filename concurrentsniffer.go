@@ -5,6 +5,7 @@ package goloc
 
 import (
 	"errors"
+	"fmt"
 	"runtime"
 	"strings"
 	"sync"
@@ -68,15 +69,6 @@ func (s *ConcurrentSniffer) searchPromise(parameters Parameters) *concurrency.Pr
 	future := concurrency.NewFuture()
 
 	go func() {
-		cleansearch := UpperUnaccentUnpunctString(" " + parameters.Get("search").(string) + " ")
-		if s.index.GetStopWords() != nil {
-			s.index.GetStopWords().Visit(func(element interface{}, i int) {
-				word := " " + element.(string) + " "
-				cleansearch = " " + strings.Join(strings.Split(cleansearch, word), " ") + " "
-			})
-		}
-		parameters.Set("cleansearch", cleansearch)
-
 		res := s.searchInternal(parameters)
 		future.Resolve(res)
 	}()
@@ -86,60 +78,90 @@ func (s *ConcurrentSniffer) searchPromise(parameters Parameters) *concurrency.Pr
 
 func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Container {
 	search := parameters.Get("search").(string)
-	cleansearch := parameters.Get("cleansearch").(string)
 	filter := parameters.Get("filter").(func(*Result) bool)
-	tolerance := parameters.Get("tolerance").(int)
+	tolerance := parameters.Get("tolerance").(float32)
 
-	encodedSearch := Partialphone(search)
+	cleansearch := UpperUnaccentUnpunctString(" " + parameters.Get("search").(string) + " ")
+	encodedStopWords := " "
+	if s.index.GetStopWords() != nil {
+		s.index.GetStopWords().Visit(func(element interface{}, i int) {
+			stopWord := element.(string)
+			encodedStopWords += Partialphone(stopWord) + " "
+		})
+	}
+
+	encodedSearch := Partialphone(cleansearch)
 	keys := Split(encodedSearch)
 	mkeys := MSplit(encodedSearch)
 	words := Split(cleansearch)
 
 	var waitgroup sync.WaitGroup
 
-	keysCounter := container.NewCounter()
+	min1 := maxInt
+	min2 := maxInt
+	nbids := container.NewMap()
 	mkeys.Visit(func(element interface{}, i int) {
 		waitgroup.Add(1)
 		go func(key string) {
 			defer waitgroup.Done()
-			val := s.index.GetNbIds(key)
-			if val > 0 {
-				keysCounter.Incr(key, val)
+			nb := s.index.GetNbIds(key)
+			nbids.Add(&container.KeyValue{Key: key, Value: nb})
+			if !strings.Contains(encodedStopWords, " "+key) {
+				if nb > 0 && nb < min1 {
+					min1 = nb
+				}
+			} else {
+				if nb > 0 && nb < min2 {
+					min2 = nb
+				}
 			}
 		}(element.(string))
 	})
 	waitgroup.Wait()
+	min := 0
+	if min1 < maxInt {
+		min = int((100.0 * float32(min1) * (1 + tolerance)) / 100.0)
+	} else {
+		min = min2
+	}
+	fmt.Println(min)
+
+	ids := container.NewMap()
+	nbids.Visit(func(element interface{}, i int) {
+		waitgroup.Add(1)
+		go func(keyValue *container.KeyValue) {
+			defer waitgroup.Done()
+			if keyValue.Value.(int) <= min {
+				s.index.GetIds(keyValue.Key.(string)).Visit(func(element interface{}, i int) {
+					ids.Add(&container.KeyValue{Key: element.(string), Value: true})
+				})
+			}
+		}(element.(*container.KeyValue))
+	})
+	waitgroup.Wait()
 
 	tmpResults := container.NewLimitedBinaryTree(CompareScoreResult, parameters.Get("workLimit").(int), true)
-	keysCounter.Visit(func(element interface{}, i int) {
-		if i <= tolerance {
-			waitgroup.Add(1)
-			go func(count *container.Count) {
-				defer waitgroup.Done()
-				ids := s.index.GetIds(count.Key)
-				if ids != nil && ids.GetSize() > 0 {
-					ids.Visit(func(element interface{}, i int) {
-						id := element.(string)
-						loc := s.index.Get(id)
-						if loc != nil {
-							result := new(Result)
-							result.Id = id
-							result.Search = search
-							result.Name = loc.GetName()
-							result.Lat = loc.GetLat()
-							result.Lon = loc.GetLon()
-							result.Type = loc.GetType()
-							if filter(result) {
-								result.Score += Score(keys, loc.GetEncodedName())
-								if result.Score > 0 {
-									tmpResults.Add(result)
-								}
-							}
-						}
-					})
+	ids.Visit(func(element interface{}, i int) {
+		waitgroup.Add(1)
+		go func(keyValue *container.KeyValue) {
+			defer waitgroup.Done()
+			loc := s.index.Get(keyValue.Key.(string))
+			if loc != nil {
+				result := new(Result)
+				result.Id = keyValue.Key.(string)
+				result.Search = search
+				result.Name = loc.GetName()
+				result.Lat = loc.GetLat()
+				result.Lon = loc.GetLon()
+				result.Type = loc.GetType()
+				if filter(result) {
+					result.Score += Score(keys, loc.GetEncodedName())
+					if result.Score > 0 {
+						tmpResults.Add(result)
+					}
 				}
-			}(element.(*container.Count))
-		}
+			}
+		}(element.(*container.KeyValue))
 	})
 	waitgroup.Wait()
 

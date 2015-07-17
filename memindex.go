@@ -47,7 +47,7 @@ func NewMemindexFromFile(filename string) *Memindex {
 	mi.sniffer = NewConcurrentSniffer(mi)
 	fmt.Printf("%v Locations\n", len(mi.Locations))
 	fmt.Printf("%v Keys\n", len(mi.Keys))
-	fmt.Printf("%v Stop words\n", mi.StopWords.GetSize())
+	fmt.Printf("%v Stop words\n", mi.StopWords.Size())
 
 	return mi
 }
@@ -60,7 +60,7 @@ func (mi *Memindex) SaveInFile(filename string) {
 	fmt.Printf("save %v\n", filename)
 	fmt.Printf("%v Locations\n", len(mi.Locations))
 	fmt.Printf("%v Keys\n", len(mi.Keys))
-	fmt.Printf("%v Stop words\n", mi.StopWords.GetSize())
+	fmt.Printf("%v Stop words\n", mi.StopWords.Size())
 
 	file, err := os.Create(filename)
 	if err != nil {
@@ -120,7 +120,7 @@ func (mi *Memindex) Get(id string) Location {
 func (mi *Memindex) GetNbIds(key string) int {
 	ids := mi.Keys[key]
 	if ids != nil {
-		return ids.GetSize()
+		return ids.Size()
 	} else {
 		return 0
 	}
@@ -128,6 +128,9 @@ func (mi *Memindex) GetNbIds(key string) int {
 
 func (mi *Memindex) GetIds(key string) container.Container {
 	ids := mi.Keys[key]
+	if ids == nil {
+		return container.NewLinkedList()
+	}
 	return ids
 }
 

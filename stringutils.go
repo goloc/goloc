@@ -134,7 +134,7 @@ func Distance(search, reference string) int {
 }
 
 func Score(searchWords container.Container, reference string) int {
-	if searchWords.GetSize() == 0 || reference == "" {
+	if searchWords.Size() == 0 || reference == "" {
 		return 0
 	}
 	referenceWords := Split(reference)

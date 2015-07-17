@@ -8,15 +8,15 @@ import (
 )
 
 const (
-	defaultLimit            = 10
-	defaultTolerance        = 1
-	defaultWorkLimit        = 200
+	defaultLimit            = int(10)
+	defaultTolerance        = float32(.5)
+	defaultWorkLimit        = int(200)
 	defaultMaxWaitAcquire   = 1 * time.Second
 	defaultMaxWaitTraitment = 3 * time.Second
 
 	// min/max value for int /unit
-	maxUint = ^uint(0)
-	minUint = 0
-	maxInt  = int(maxUint >> 1)
-	minInt  = -maxInt - 1
+	maxUint = uint(1<<32 - 1)
+	minUint = uint(0)
+	maxInt  = int(1<<31 - 1)
+	minInt  = int(-1 << 31)
 )
