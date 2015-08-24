@@ -133,38 +133,50 @@ func Distance(search, reference string) int {
 	return column[lenSearch]
 }
 
-func Score(searchWords container.Container, reference string) int {
+func StrScore(search string, reference string) int {
+	if search == "" || reference == "" {
+		return 0
+	}
+	score := len(search) + len(reference) - 2*Distance(search, reference)
+	if score < 0 {
+		return 0
+	} else {
+		return score
+	}
+}
+
+func ContainerScore(searchWords container.Container, reference string) int {
 	if searchWords.Size() == 0 || reference == "" {
 		return 0
 	}
 	referenceWords := Split(reference)
-	var match, topMatch, m, bestIndex int
+	score := 0
 	lastIndex := -1
 	searchWords.Visit(func(element interface{}, i int) {
 		currentSearchWord := element.(string)
-		topMatch = 0
-		bestIndex = 0
+		top := 0
+		bestIndex := 0
 		referenceWords.Visit(func(element interface{}, j int) {
 			currentRefenceWord := element.(string)
-			m = len(currentSearchWord) + len(currentRefenceWord) - 2*Distance(currentSearchWord, currentRefenceWord)
-			if m > topMatch {
-				topMatch = m
+			s := StrScore(currentSearchWord, currentRefenceWord)
+			if s > top {
+				top = s
 				bestIndex = j
 			}
 		})
 		if lastIndex == -1 {
 			lastIndex = bestIndex
 		}
-		match += topMatch
+		score += top
 		if bestIndex < lastIndex {
-			match--
+			score--
 		}
 		lastIndex = bestIndex
 	})
-	if match < 0 {
+	if score < 0 {
 		return 0
 	} else {
-		return match
+		return score
 	}
 }
 

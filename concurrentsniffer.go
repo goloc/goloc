@@ -5,7 +5,6 @@ package goloc
 
 import (
 	"errors"
-	"fmt"
 	"runtime"
 	"strings"
 	"sync"
@@ -93,6 +92,7 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 	encodedSearch := Partialphone(cleansearch)
 	keys := Split(encodedSearch)
 	mkeys := MSplit(encodedSearch)
+	mjkeys := MSplit(strings.Replace(encodedSearch, " ", "", -1))
 	words := Split(cleansearch)
 
 	var waitgroup sync.WaitGroup
@@ -124,7 +124,16 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 	} else {
 		min = min2
 	}
-	fmt.Println(min)
+
+	mjkeys.Visit(func(element interface{}, i int) {
+		waitgroup.Add(1)
+		go func(key string) {
+			defer waitgroup.Done()
+			nb := s.index.GetNbIds(key)
+			nbids.Add(&container.KeyValue{Key: key, Value: nb})
+		}(element.(string))
+	})
+	waitgroup.Wait()
 
 	ids := container.NewMap()
 	nbids.Visit(func(element interface{}, i int) {
@@ -155,7 +164,7 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 				result.Lon = loc.GetLon()
 				result.Type = loc.GetType()
 				if filter(result) {
-					result.Score += Score(keys, loc.GetEncodedName())
+					result.Score += ContainerScore(keys, loc.GetEncodedName())
 					if result.Score > 0 {
 						tmpResults.Add(result)
 					}
@@ -170,7 +179,7 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 		waitgroup.Add(1)
 		go func(result *Result) {
 			defer waitgroup.Done()
-			result.Score += Score(words, UpperUnaccentUnpunctString(result.Name))
+			result.Score = ContainerScore(words, UpperUnaccentUnpunctString(result.Name)) + StrScore(cleansearch, UpperUnaccentUnpunctString(result.Name))
 			if result.Score > 0 {
 				results.Add(result)
 			}

@@ -93,16 +93,16 @@ func TestPartialphone(t *testing.T) {
 }
 
 func TestScore(t *testing.T) {
-	score1 := Score(Split(UpperUnaccentUnpunctString("champs elysees paris")), UpperUnaccentUnpunctString("Avenue des Champs-Élysées 75008 Paris France"))
-	score2 := Score(Split(UpperUnaccentUnpunctString("paris champs elysees")), UpperUnaccentUnpunctString("Avenue des Champs-Élysées 75008 Paris France"))
-	score3 := Score(Split(UpperUnaccentUnpunctString("champs elyse paris")), UpperUnaccentUnpunctString("Avenue des Champs-Élysées 75008 Paris France"))
+	score1 := ContainerScore(Split(UpperUnaccentUnpunctString("champs elysees paris")), UpperUnaccentUnpunctString("Avenue des Champs-Élysées 75008 Paris France"))
+	score2 := ContainerScore(Split(UpperUnaccentUnpunctString("paris champs elysees")), UpperUnaccentUnpunctString("Avenue des Champs-Élysées 75008 Paris France"))
+	score3 := ContainerScore(Split(UpperUnaccentUnpunctString("champs elyse paris")), UpperUnaccentUnpunctString("Avenue des Champs-Élysées 75008 Paris France"))
 	if score1 <= score2 || score1 <= score3 {
 		t.Logf("score1=%v score2=%v score3=%v", score1, score2, score3)
 		t.Fail()
 	}
 
-	score4 := Score(Split(UpperUnaccentUnpunctString("eco")), UpperUnaccentUnpunctString("Ecole – Aubers"))
-	score5 := Score(Split(UpperUnaccentUnpunctString("eco")), UpperUnaccentUnpunctString("Cite Arbrisseau All C 59176 Écaillon"))
+	score4 := ContainerScore(Split(UpperUnaccentUnpunctString("eco")), UpperUnaccentUnpunctString("Ecole – Aubers"))
+	score5 := ContainerScore(Split(UpperUnaccentUnpunctString("eco")), UpperUnaccentUnpunctString("Cite Arbrisseau All C 59176 Écaillon"))
 	if score4 <= score5 {
 		t.Logf("score4=%v score5=%v", score4, score5)
 		t.Fail()
