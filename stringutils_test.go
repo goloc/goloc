@@ -5,6 +5,8 @@ package goloc
 
 import (
 	"testing"
+
+	"github.com/goloc/container"
 )
 
 var levTests = []struct {
@@ -46,6 +48,35 @@ func TestDistance(t *testing.T) {
 		if d != tt.distance {
 			t.Logf("Distance of %v and %v should be %v but was %v.",
 				tt.source, tt.target, tt.distance, d)
+			t.Fail()
+		}
+	}
+}
+
+var cleanTests = []struct {
+	source string
+	target string
+}{
+	{"Avenue des Champs-Élysées 75008 Paris France", "CHAMPS ELYSEES 75008 PARIS FRANCE"},
+	{"Rue du Square Carpeaux 75018 Paris France", "SQUARE CARPEAUX 75018 PARIS FRANCE"},
+	{"Place Carnot 69002 Lyon", "CARNOT 69002 LYON"},
+	{"Rue Tissot 69009 Lyon", "TISSOT 69009 LYON"},
+	{"Tissot Rue Lyon", "TISSOT LYON"},
+	{"Champs-Élysées Avenue 75008 Paris France des", "CHAMPS ELYSEES 75008 PARIS FRANCE"},
+}
+
+func TestClean(t *testing.T) {
+	stopWords := container.NewLinkedList()
+	stopWords.Add("Des")
+	stopWords.Add("Du")
+	stopWords.Add("AVENUE")
+	stopWords.Add("RUE")
+	stopWords.Add("PLACE")
+	for _, tt := range cleanTests {
+		target := Clean(tt.source, stopWords)
+		if target != tt.target {
+			t.Logf("Clean of %v should be %v but was %v.",
+				tt.source, tt.target, target)
 			t.Fail()
 		}
 	}

@@ -80,8 +80,12 @@ func indexTest(index Index, t *testing.T) {
 			results.Size())
 		t.Fail()
 	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
+		t.Logf("Result number should be %v but was %v.", "Rue du Square Carpeaux 75018 Paris France",
+			results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name)
 		t.Fail()
 	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Number != "" {
+		t.Logf("Result number should be %v but was %v.", "empty",
+			results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Number)
 		t.Fail()
 	}
 
@@ -94,8 +98,12 @@ func indexTest(index Index, t *testing.T) {
 			results.Size())
 		t.Fail()
 	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name != "Rue du Square Carpeaux 75018 Paris France" {
+		t.Logf("Result number should be %v but was %v.", "Rue du Square Carpeaux 75018 Paris France",
+			results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Name)
 		t.Fail()
 	} else if results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Number != "10" {
+		t.Logf("Result number should be %v but was %v.", "10",
+			results.ToArrayOfType(reflect.TypeOf(new(Result))).([]*Result)[0].Number)
 		t.Fail()
 	}
 

@@ -29,23 +29,29 @@ type Index interface {
 	AddStopWord(...string)
 	// Get stop words
 	GetStopWords() container.Container
+	// Get encoded stop words
+	GetEncodedStopWords() container.Container
 }
 
 // Location definition.
 type Location interface {
-	// Unique identifier.
+	// Get unique identifier.
 	GetId() string
-	// Phonetic encoded name
+	// Get cleaned name
+	GetCleanedName() string
+	// Set cleaned name
+	SetCleanedName(string)
+	// Get phonetic encoded name
 	GetEncodedName() string
-	// Phonetic encoded name
+	// Set phonetic encoded name
 	SetEncodedName(string)
-	// Name to indexing it.
+	// Get name to indexing it.
 	GetName() string
-	// Type (street, poi, zone...).
+	// Get type (street, poi, zone...).
 	GetType() string
-	// Latitude
+	// Get latitude
 	GetLat() float32
-	// Longitude
+	// Get lLongitude
 	GetLon() float32
 }
 
@@ -57,10 +63,10 @@ type NumberedPointBag interface {
 
 // Numbered point definition.
 type NumberedPoint interface {
-	// String number
+	// Get string number
 	GetNumber() string
-	// Latitude
+	// Get latitude
 	GetLat() float32
-	// Longitude
+	// Get longitude
 	GetLon() float32
 }

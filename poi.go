@@ -8,6 +8,7 @@ import "bytes"
 type Poi struct {
 	Id          string
 	EncodedName string
+	CleanedName string
 	PoiName     string
 	PoiType     string
 	Zone        *Zone
@@ -24,6 +25,14 @@ func (p *Poi) GetEncodedName() string {
 
 func (p *Poi) SetEncodedName(encodedName string) {
 	p.EncodedName = encodedName
+}
+
+func (p *Poi) GetCleanedName() string {
+	return p.CleanedName
+}
+
+func (p *Poi) SetCleanedName(cleanedName string) {
+	p.CleanedName = cleanedName
 }
 
 func (p *Poi) GetName() string {

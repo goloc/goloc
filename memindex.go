@@ -14,10 +14,11 @@ import (
 )
 
 type Memindex struct {
-	sniffer   Sniffer
-	Locations map[string]Location
-	Keys      map[string]*container.LinkedList
-	StopWords *container.LinkedList
+	sniffer          Sniffer
+	Locations        map[string]Location
+	Keys             map[string]*container.LinkedList
+	StopWords        *container.Set
+	EncodedStopWords *container.Set
 }
 
 func NewMemindex() *Memindex {
@@ -48,6 +49,7 @@ func NewMemindexFromFile(filename string) *Memindex {
 	fmt.Printf("%v Locations\n", len(mi.Locations))
 	fmt.Printf("%v Keys\n", len(mi.Keys))
 	fmt.Printf("%v Stop words\n", mi.StopWords.Size())
+	fmt.Printf("%v Encoded stop words\n", mi.EncodedStopWords.Size())
 
 	return mi
 }
@@ -61,6 +63,7 @@ func (mi *Memindex) SaveInFile(filename string) {
 	fmt.Printf("%v Locations\n", len(mi.Locations))
 	fmt.Printf("%v Keys\n", len(mi.Keys))
 	fmt.Printf("%v Stop words\n", mi.StopWords.Size())
+	fmt.Printf("%v Encoded Stop words\n", mi.EncodedStopWords.Size())
 
 	file, err := os.Create(filename)
 	if err != nil {
@@ -90,7 +93,9 @@ func (mi *Memindex) addOne(loc Location) {
 			name = strings.Join(strings.Split(name, word), " ")
 		})
 	}
-	encodedName := Partialphone(name)
+	cleanedName := Clean(name, mi.GetStopWords())
+	loc.SetCleanedName(cleanedName)
+	encodedName := Partialphone(cleanedName)
 	loc.SetEncodedName(encodedName)
 	mkeys := MSplit(encodedName)
 	id := loc.GetId()
@@ -109,7 +114,8 @@ func (mi *Memindex) addOne(loc Location) {
 func (mi *Memindex) Clear() {
 	mi.Locations = make(map[string]Location)
 	mi.Keys = make(map[string]*container.LinkedList)
-	mi.StopWords = container.NewLinkedList()
+	mi.StopWords = container.NewSet()
+	mi.EncodedStopWords = container.NewSet()
 }
 
 func (mi *Memindex) Get(id string) Location {
@@ -136,10 +142,16 @@ func (mi *Memindex) GetIds(key string) container.Container {
 
 func (mi *Memindex) AddStopWord(words ...string) {
 	for _, word := range words {
-		mi.StopWords.Add(UpperUnaccentUnpunctString(word))
+		w := UpperUnaccentUnpunctString(word)
+		mi.StopWords.Add(w)
+		mi.EncodedStopWords.Add(Partialphone(w))
 	}
 }
 
 func (mi *Memindex) GetStopWords() container.Container {
 	return mi.StopWords
+}
+
+func (mi *Memindex) GetEncodedStopWords() container.Container {
+	return mi.EncodedStopWords
 }

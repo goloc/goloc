@@ -79,21 +79,12 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 	search := parameters.Get("search").(string)
 	filter := parameters.Get("filter").(func(*Result) bool)
 	tolerance := parameters.Get("tolerance").(float32)
-
-	cleansearch := UpperUnaccentUnpunctString(" " + parameters.Get("search").(string) + " ")
-	encodedStopWords := " "
-	if s.index.GetStopWords() != nil {
-		s.index.GetStopWords().Visit(func(element interface{}, i int) {
-			stopWord := element.(string)
-			encodedStopWords += Partialphone(stopWord) + " "
-		})
-	}
-
-	encodedSearch := Partialphone(cleansearch)
+	cleanedSearch := Clean(search, s.index.GetStopWords())
+	encodedSearch := Partialphone(cleanedSearch)
 	keys := Split(encodedSearch)
 	mkeys := MSplit(encodedSearch)
 	mjkeys := MSplit(strings.Replace(encodedSearch, " ", "", -1))
-	words := Split(cleansearch)
+	words := Split(cleanedSearch)
 
 	var waitgroup sync.WaitGroup
 
@@ -106,7 +97,7 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 			defer waitgroup.Done()
 			nb := s.index.GetNbIds(key)
 			nbids.Add(&container.KeyValue{Key: key, Value: nb})
-			if !strings.Contains(encodedStopWords, " "+key) {
+			if !s.index.GetEncodedStopWords().Contains(key) {
 				if nb > 0 && nb < min1 {
 					min1 = nb
 				}
@@ -118,12 +109,7 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 		}(element.(string))
 	})
 	waitgroup.Wait()
-	min := 0
-	if min1 < maxInt {
-		min = int((100.0 * float32(min1) * (1 + tolerance)) / 100.0)
-	} else {
-		min = min2
-	}
+	min := int((100.0 * float32(Min(min1, min2)) * (1 + tolerance)) / 100.0)
 
 	mjkeys.Visit(func(element interface{}, i int) {
 		waitgroup.Add(1)
@@ -159,7 +145,9 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 				result := new(Result)
 				result.Id = keyValue.Key.(string)
 				result.Search = search
+				result.CleanedSearch = cleanedSearch
 				result.Name = loc.GetName()
+				result.CleanedName = loc.GetCleanedName()
 				result.Lat = loc.GetLat()
 				result.Lon = loc.GetLon()
 				result.Type = loc.GetType()
@@ -179,7 +167,7 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 		waitgroup.Add(1)
 		go func(result *Result) {
 			defer waitgroup.Done()
-			result.Score = ContainerScore(words, UpperUnaccentUnpunctString(result.Name)) + StrScore(cleansearch, UpperUnaccentUnpunctString(result.Name))
+			result.Score = ContainerScore(words, result.CleanedName)
 			if result.Score > 0 {
 				results.Add(result)
 			}
@@ -198,7 +186,7 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 				bag.GetNumberedPoints().Visit(func(element interface{}, i int) {
 					numbered := element.(NumberedPoint)
 					num := UpperUnaccentUnpunctString(numbered.GetNumber())
-					idx := strings.Index(cleansearch, " "+num+" ")
+					idx := strings.Index(" "+cleanedSearch+" ", " "+num+" ")
 					if idx >= 0 && i < minPos {
 						minPos = idx
 						result.Number = numbered.GetNumber()

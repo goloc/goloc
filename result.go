@@ -3,15 +3,15 @@
 // license that can be found in the LICENSE file.
 package goloc
 
-import ()
-
 type Result struct {
-	Score  int
-	Search string
-	Id     string
-	Type   string
-	Name   string
-	Number string
+	Score         int
+	Search        string
+	CleanedSearch string
+	Id            string
+	Type          string
+	Name          string
+	CleanedName   string
+	Number        string
 	Point
 }
 

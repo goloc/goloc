@@ -12,6 +12,7 @@ import (
 type Street struct {
 	Id          string
 	EncodedName string
+	CleanedName string
 	StreetName  string
 	Zone        *Zone
 	Point
@@ -28,6 +29,14 @@ func (s *Street) GetEncodedName() string {
 
 func (s *Street) SetEncodedName(encodedName string) {
 	s.EncodedName = encodedName
+}
+
+func (s *Street) GetCleanedName() string {
+	return s.CleanedName
+}
+
+func (s *Street) SetCleanedName(cleanedName string) {
+	s.CleanedName = cleanedName
 }
 
 func (s *Street) GetName() string {

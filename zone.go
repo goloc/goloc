@@ -8,6 +8,7 @@ import "bytes"
 type Zone struct {
 	Id          string
 	EncodedName string
+	CleanedName string
 	Postcode    string
 	Settlement  string
 	City        string
@@ -26,6 +27,14 @@ func (z *Zone) GetEncodedName() string {
 
 func (z *Zone) SetEncodedName(encodedName string) {
 	z.EncodedName = encodedName
+}
+
+func (z *Zone) GetCleanedName() string {
+	return z.CleanedName
+}
+
+func (z *Zone) SetCleanedName(cleanedName string) {
+	z.CleanedName = cleanedName
 }
 
 func (z *Zone) GetName() string {

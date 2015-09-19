@@ -11,6 +11,17 @@ import (
 	"github.com/goloc/container"
 )
 
+func Clean(source string, stopWords container.Container) string {
+	cleansearch := " " + UpperUnaccentUnpunctString(source) + " "
+	if stopWords != nil {
+		stopWords.Visit(func(element interface{}, i int) {
+			stopWord := UpperUnaccentUnpunctString(element.(string))
+			cleansearch = strings.Join(strings.Split(cleansearch, " "+stopWord+" "), " ")
+		})
+	}
+	return strings.TrimSpace(cleansearch)
+}
+
 func Split(source string) container.Container {
 	strs := strings.FieldsFunc(source, func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsNumber(r)
