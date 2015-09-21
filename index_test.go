@@ -41,7 +41,7 @@ func indexTest(index Index, t *testing.T) {
 	poi1 := NewPoi("P1", "Gare de Lyon", "Gare", paris12, 0, 0)
 	index.Add(poi1)
 
-	results, err := index.Search(NewMapParameters(KeyValue{Key: "search", Value: "rue"}))
+	results, err := index.Search(Parameters{"search": "rue"})
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
@@ -51,7 +51,7 @@ func indexTest(index Index, t *testing.T) {
 		t.Fail()
 	}
 
-	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "paris"}))
+	results, err = index.Search(Parameters{"search": "paris"})
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
@@ -61,7 +61,7 @@ func indexTest(index Index, t *testing.T) {
 		t.Fail()
 	}
 
-	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "avenue champs"}))
+	results, err = index.Search(Parameters{"search": "avenue champs"})
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
@@ -71,7 +71,7 @@ func indexTest(index Index, t *testing.T) {
 		t.Fail()
 	}
 
-	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "carpe"}))
+	results, err = index.Search(Parameters{"search": "carpe"})
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
@@ -89,7 +89,7 @@ func indexTest(index Index, t *testing.T) {
 		t.Fail()
 	}
 
-	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "10 carpe"}))
+	results, err = index.Search(Parameters{"search": "10 carpe"})
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
@@ -107,7 +107,7 @@ func indexTest(index Index, t *testing.T) {
 		t.Fail()
 	}
 
-	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "rue lyon paris"}))
+	results, err = index.Search(Parameters{"search": "rue lyon paris"})
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
@@ -117,7 +117,7 @@ func indexTest(index Index, t *testing.T) {
 		t.Fail()
 	}
 
-	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "lyon"}))
+	results, err = index.Search(Parameters{"search": "lyon"})
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()
@@ -128,12 +128,12 @@ func indexTest(index Index, t *testing.T) {
 	}
 
 	// Search only poi:Gare
-	results, err = index.Search(NewMapParameters(KeyValue{Key: "search", Value: "lyon"}, KeyValue{Key: "filter", Value: func(result *Result) bool {
+	results, err = index.Search(Parameters{"search": "lyon", "filter": func(result *Result) bool {
 		if result.Type == "poi:Gare" {
 			return true
 		}
 		return false
-	}}))
+	}})
 	if err != nil {
 		t.Logf("%v\n", err)
 		t.Fail()

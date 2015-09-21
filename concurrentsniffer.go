@@ -26,37 +26,37 @@ func NewConcurrentSniffer(index Index) *ConcurrentSniffer {
 }
 
 func (s *ConcurrentSniffer) Search(parameters Parameters) (container.Container, error) {
-	if parameters.Get("search") == nil {
+	if parameters["search"] == nil {
 		return nil, errors.New("Search attribute is mandatory")
 	}
-	if parameters.Get("filter") == nil {
-		parameters.Set("filter", DefaultFilter)
+	if parameters["filter"] == nil {
+		parameters["filter"] = DefaultFilter
 	}
-	if parameters.Get("limit") == nil {
-		parameters.Set("limit", defaultLimit)
+	if parameters["limit"] == nil {
+		parameters["limit"] = defaultLimit
 	}
-	if parameters.Get("tolerance") == nil {
-		parameters.Set("tolerance", defaultTolerance)
+	if parameters["tolerance"] == nil {
+		parameters["tolerance"] = defaultTolerance
 	}
-	if parameters.Get("maxWaitAcquire") == nil {
-		parameters.Set("maxWaitAcquire", defaultMaxWaitAcquire)
+	if parameters["maxWaitAcquire"] == nil {
+		parameters["maxWaitAcquire"] = defaultMaxWaitAcquire
 	}
-	if parameters.Get("maxWaitTraitment") == nil {
-		parameters.Set("maxWaitTraitment", defaultMaxWaitTraitment)
+	if parameters["maxWaitTraitment"] == nil {
+		parameters["maxWaitTraitment"] = defaultMaxWaitTraitment
 	}
-	if parameters.Get("workLimit") == nil {
-		parameters.Set("workLimit", defaultWorkLimit)
+	if parameters["workLimit"] == nil {
+		parameters["workLimit"] = defaultWorkLimit
 	}
 
 	if s.semaphore == nil {
 		s.semaphore = concurrency.NewSemaphore(runtime.NumCPU())
 	}
-	if err := s.semaphore.Acquire(parameters.Get("maxWaitAcquire").(time.Duration)); err != nil {
+	if err := s.semaphore.Acquire(parameters["maxWaitAcquire"].(time.Duration)); err != nil {
 		return nil, err
 	}
 	defer s.semaphore.Release()
 	promise := s.searchPromise(parameters)
-	element, err := promise.Wait(parameters.Get("maxWaitTraitment").(time.Duration))
+	element, err := promise.Wait(parameters["maxWaitTraitment"].(time.Duration))
 	if element != nil {
 		return element.(container.Container), err
 	} else {
@@ -76,14 +76,13 @@ func (s *ConcurrentSniffer) searchPromise(parameters Parameters) *concurrency.Pr
 }
 
 func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Container {
-	search := parameters.Get("search").(string)
-	filter := parameters.Get("filter").(func(*Result) bool)
-	tolerance := parameters.Get("tolerance").(float32)
+	search := parameters["search"].(string)
+	filter := parameters["filter"].(func(*Result) bool)
+	tolerance := parameters["tolerance"].(float32)
 	cleanedSearch := Clean(search, s.index.GetStopWords())
 	encodedSearch := Partialphone(cleanedSearch)
 	keys := Split(encodedSearch)
 	mkeys := MSplit(encodedSearch)
-	mjkeys := MSplit(strings.Replace(encodedSearch, " ", "", -1))
 	words := Split(cleanedSearch)
 
 	var waitgroup sync.WaitGroup
@@ -111,16 +110,6 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 	waitgroup.Wait()
 	min := int((100.0 * float32(Min(min1, min2)) * (1 + tolerance)) / 100.0)
 
-	mjkeys.Visit(func(element interface{}, i int) {
-		waitgroup.Add(1)
-		go func(key string) {
-			defer waitgroup.Done()
-			nb := s.index.GetNbIds(key)
-			nbids.Add(&container.KeyValue{Key: key, Value: nb})
-		}(element.(string))
-	})
-	waitgroup.Wait()
-
 	ids := container.NewMap()
 	nbids.Visit(func(element interface{}, i int) {
 		waitgroup.Add(1)
@@ -135,7 +124,7 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 	})
 	waitgroup.Wait()
 
-	tmpResults := container.NewLimitedBinaryTree(CompareScoreResult, parameters.Get("workLimit").(int), true)
+	tmpResults := container.NewLimitedBinaryTree(CompareScoreResult, parameters["workLimit"].(int), true)
 	ids.Visit(func(element interface{}, i int) {
 		waitgroup.Add(1)
 		go func(keyValue *container.KeyValue) {
@@ -162,7 +151,7 @@ func (s *ConcurrentSniffer) searchInternal(parameters Parameters) container.Cont
 	})
 	waitgroup.Wait()
 
-	results := container.NewLimitedBinaryTree(CompareScoreResult, parameters.Get("limit").(int), true)
+	results := container.NewLimitedBinaryTree(CompareScoreResult, parameters["limit"].(int), true)
 	tmpResults.Visit(func(element interface{}, i int) {
 		waitgroup.Add(1)
 		go func(result *Result) {

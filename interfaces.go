@@ -5,10 +5,7 @@ package goloc
 
 import "github.com/goloc/container"
 
-type Parameters interface {
-	Get(string) interface{}
-	Set(string, interface{})
-}
+type Parameters map[string]interface{}
 
 type Sniffer interface {
 	// Search
